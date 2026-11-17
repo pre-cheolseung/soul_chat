@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:soul_chat/components/chat_text_field.dart';
 import 'package:soul_chat/components/date_divider.dart';
 import 'package:soul_chat/components/logo.dart';
 import 'package:soul_chat/components/message.dart';
@@ -40,12 +41,34 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final TextEditingController controller = TextEditingController();
+  bool isRunning = false;   // 로딩 여부를 확인하는 변수
+  String? error;   // 에러 메시지 변수
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: buildMessageList(),
+      // ListView와 TextField를 세로로 정렬
+      body: SafeArea(
+        child: Column(
+          children: [
+            // ListView가 화면을 최대한으로 차지하도록 설정
+            Expanded(
+              child: buildMessageList(),
+            ),
+            ChatTextField(
+              controller: controller,
+              onSend: handleSendMessage,
+              error: error,
+              loading: isRunning,
+            ),
+          ],
+        ),
+      ),
     );
   }
+
+  handleSendMessage() {}
 
   Widget buildMessageList() {
     return ListView.separated(
