@@ -1,0 +1,22 @@
+import 'package:flutter/material.dart';
+
+class PointNotification extends StatelessWidget {
+  final int point;   // 포인트
+
+  const PointNotification({
+    super.key,
+
+    required this.point,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      '$point has been credited!',
+      style: TextStyle(
+        color: Colors.blueAccent,
+        fontStyle: FontStyle.italic,
+      ),
+    );
+  }
+}

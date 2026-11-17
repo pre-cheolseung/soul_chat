@@ -6,11 +6,11 @@ class Logo extends StatelessWidget {
   final double height;   // 직접 높이를 정의할 경우를 대비한 높이 파라미터
 
   const Logo({
+    super.key,
+    
     this.width = 200,
     this.height = 200,
-
-    Key? key,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
