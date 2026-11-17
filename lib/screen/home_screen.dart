@@ -42,7 +42,23 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
-    return const Placeholder();
+    return Scaffold(
+      body: buildMessageList(),
+    );
+  }
+
+  Widget buildMessageList() {
+    return ListView.separated(
+      itemBuilder: (context, index) => index == 0
+        ? buildLogo()
+        : buildMessageItem(
+            message: sampleData[index - 1],
+            prevMessage: index > 1 ? sampleData[index - 2] : null,
+            index: index - 1,
+          ),
+      separatorBuilder: (_, __) => const SizedBox(height: 16.0),
+      itemCount: sampleData.length + 1,
+    );
   }
 
   Widget buildLogo() {
