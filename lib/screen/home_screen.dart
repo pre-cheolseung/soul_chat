@@ -6,7 +6,10 @@ import 'package:soul_chat/components/logo.dart';
 import 'package:soul_chat/components/message.dart';
 import 'package:soul_chat/model/message_model.dart';
 
+import 'package:get_it/get_it.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:intl/intl.dart';
+import 'package:isar_community/isar.dart';
 
 DateTime now = DateTime.now();
 // String monthShort = DateFormat('MMM', 'en_US').format(now);   // 월을 영어 약자로 표시 (예: Nov)
@@ -68,7 +71,66 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  handleSendMessage() {}
+  handleSendMessage() async {
+    // TextField에 입력된 메시지가 없으면 에러 출력
+    if(controller.text.isEmpty) {
+      // 상태 변경 시 setState() 함수 실행
+      // 값 변경 시 build() 함수 재실행
+      // Clean -> setState() -> Dirty -> build() -> Clean
+      setState(() => error = 'Please enter a message!');
+
+      return;
+    }
+
+    int? currentModelMessageId;   // 현재 응답받고 있는 메시지 ID (스트림으로 지속적 업데이트)
+    int? currentUserMessageId;   // 내가 보낸 메시지에 배정된 ID (에러가 발생하면 삭제)
+    final isar = GetIt.I<Isar>();   // Isar 인스턴스 변수
+    final currentPrompt = controller.text;   // TextField에 입력된 값을 저장하는 변수
+
+    try {
+      // 로딩 중으로 상태 변경
+      // 상태 변경 시 setState() 함수 실행
+      // 값 변경 시 build() 함수 재실행
+      // Clean -> setState() -> Dirty -> build() -> Clean
+      setState(() {
+        isRunning = true;
+      });
+
+      controller.clear();   // TextField에 입력된 값 모두 삭제
+
+      // 현재 데이터베이스에 저장되어 있는 내가 보낸 메시지 수 (포인트용)
+      final myMessageCount = await isar.messageModels.filter().isMineEqualTo(true).count();
+
+      // 내가 보낸 메시지 Isar에 저장
+      currentUserMessageId = await isar.writeTxn(() async {
+        return await isar.messageModels.put(
+          MessageModel(
+            date: DateTime.now(),
+            isMine: true,
+            message: currentPrompt,
+            point: myMessageCount + 1,
+          ),
+        );
+      });
+    } catch (e) {
+      // 에러가 있을 경우 SnackBar로 에러 메시지 표시
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.redAccent,
+          content: Text(e.toString()),
+          behavior: SnackBarBehavior.floating,   // 화면 위에 떠 있는 스타일
+          // 확인 버튼
+          action: SnackBarAction(
+            label: 'Confirm',
+            textColor: Colors.white,
+            onPressed: () {
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            },
+          ),
+        ),
+      );
+    }
+  }
 
   Widget buildMessageList() {
     return ListView.separated(
