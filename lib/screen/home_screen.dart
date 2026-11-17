@@ -116,7 +116,11 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       });
 
-      final contextMessages = await isar.messageModels.where().limit(5).findAll();   // 최근 5개의 메시지만 저장하는 변수
+      // 최근 5개의 메시지만 저장하는 변수
+      // 제미나이에게 현재까지 대화한 문맥을 제공
+      // 최근 어느 정도 대화 히스토리를 함께 제공하는 것이 정확한 대답을 이끌어내기에 유용
+      // 많은 대화 히스토리를 제공할 수록 비용 증가
+      final contextMessages = await isar.messageModels.where().limit(5).findAll();
       final List<Content> promptContext = contextMessages.map(
         (e) => Content(
           e.isMine ? 'user' : 'model',
@@ -133,6 +137,56 @@ class _HomeScreenState extends State<HomeScreen> {
           '당신은 착하고 친절한 친구입니다.'
           '앞으로 채팅을 하면서 긍정적인 말만 할 수 있도록 해주세요.'
         ),
+      );
+
+      String message = '';   // Stream으로 받아지는 메시지를 지속적으로 추가할 문자열
+
+      // generateContentStream을 실행하면 Stream으로 응답 수신 가능
+      model.generateContentStream(promptContext).listen(
+        (event) async {
+          // 응답 메시지가 있다면 message 변수에 추가
+          if (event.text != null) {
+            message += event.text!;
+          }
+
+          // message 변수를 기반으로 MessageModel을 생성
+          final MessageModel model = MessageModel(
+            date: DateTime.now(),
+            isMine: false,
+            message: message,
+          );
+
+          // 이미 메시지를 생성한 적이 있다면 model 변수에 id 프로퍼티를 추가
+          if (currentModelMessageId != null) {
+            model.id = currentModelMessageId!;
+          }
+
+          // 메시지를 저장하고 받환받은 ID 값을 currentModelMessageId에 할당
+          currentModelMessageId = await isar.writeTxn<int>(() => isar.messageModels.put(model));
+        },
+
+        // Stream이 끝나면 로딩 상태 업데이트
+        // 상태 변경 시 setState() 함수 실행
+        // 값 변경 시 build() 함수 재실행
+        // Clean -> setState() -> Dirty -> build() -> Clean
+        onDone: () => setState(() {
+          isRunning = false;
+        }),
+
+        // 에러가 발생하면 생성했던 내 메시지를 삭제하고 에러 및 로딩 상태 업데이트
+        onError: (e) async {
+          await isar.writeTxn(() async {
+            return isar.messageModels.delete(currentUserMessageId!);
+          });
+
+          // 상태 변경 시 setState() 함수 실행
+          // 값 변경 시 build() 함수 재실행
+          // Clean -> setState() -> Dirty -> build() -> Clean
+          setState(() {
+            error = e.toString();
+            isRunning = false;
+          });
+        },
       );
 
     } catch (e) {
