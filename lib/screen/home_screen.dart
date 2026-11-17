@@ -57,11 +57,11 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             // ListView가 화면을 최대한으로 차지하도록 설정
             Expanded(
-              child: buildMessageList(),
+              child: buildMessageList(),   // 화면에 로고와 메시지들을 보여주는 ListView 함수
             ),
             ChatTextField(
               controller: controller,
-              onSend: handleSendMessage,
+              onSend: handleSendMessage,   // 채팅 입력 TextField 함수
               error: error,
               loading: isRunning,
             ),
@@ -71,6 +71,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // 채팅 입력 TextField 함수
   handleSendMessage() async {
     // TextField에 입력된 메시지가 없으면 에러 출력
     if(controller.text.isEmpty) {
@@ -86,6 +87,8 @@ class _HomeScreenState extends State<HomeScreen> {
     int? currentUserMessageId;   // 내가 보낸 메시지에 배정된 ID (에러가 발생하면 삭제)
     final isar = GetIt.I<Isar>();   // Isar 인스턴스 변수
     final currentPrompt = controller.text;   // TextField에 입력된 값을 저장하는 변수
+    // const apiKey = 'GEMINI_API_KEY';   // 직접 입력 방식
+    const apiKey = String.fromEnvironment('GEMINI_API_KEY');   // 환경 변수 설정 방식
 
     try {
       // 로딩 중으로 상태 변경
@@ -112,6 +115,26 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         );
       });
+
+      final contextMessages = await isar.messageModels.where().limit(5).findAll();   // 최근 5개의 메시지만 저장하는 변수
+      final List<Content> promptContext = contextMessages.map(
+        (e) => Content(
+          e.isMine ? 'user' : 'model',
+          [
+            TextPart(e.message),
+          ],
+        ),
+      ).toList();
+      // 사용할 제미나이 모델과 키 지정
+      final model = GenerativeModel(
+        model: 'gemini-3.5-flash-lite',
+        apiKey: apiKey,   // 
+        systemInstruction: Content.system(
+          '당신은 착하고 친절한 친구입니다.'
+          '앞으로 채팅을 하면서 긍정적인 말만 할 수 있도록 해주세요.'
+        ),
+      );
+
     } catch (e) {
       // 에러가 있을 경우 SnackBar로 에러 메시지 표시
       ScaffoldMessenger.of(context).showSnackBar(
@@ -132,6 +155,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // 화면에 로고와 메시지들을 보여주는 ListView 함수
   Widget buildMessageList() {
     return ListView.separated(
       itemBuilder: (context, index) => index == 0
@@ -146,6 +170,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // 로고를 보여줄 위젯
   Widget buildLogo() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -156,6 +181,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // 메시지를 화면에 그리는 함수
   Widget buildMessageItem({
     MessageModel? prevMessage,
     required MessageModel message,
