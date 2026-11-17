@@ -16,22 +16,22 @@ DateTime now = DateTime.now();
 String monthLong = DateFormat('MMMM', 'en_US').format(now);   // 월을 영어 전체 이름으로 표시 (예: November)
 // String fullDate = DateFormat.yMMMd('en_US').format(now);   // 연, 월, 일을 영어 형식으로 표시 (예: Nov 17, 2026)
 
-final sampleData = [
-  MessageModel(
-    date: DateTime(2026, 11, 17),
-    id: 1,
-    isMine: true,
-    message: '오늘 저녁으로 먹을 만한 메뉴 추천해줘!',
-    point: 1,
-  ),
-  MessageModel(
-    date: DateTime(2026, 11, 17),
-    id: 2,
-    isMine: false,
-    message: '칼칼한 김치찜은 어때요?!',
-    point: null,
-  ),
-];
+// final sampleData = [
+//   MessageModel(
+//     date: DateTime(2026, 11, 17),
+//     id: 1,
+//     isMine: true,
+//     message: '오늘 저녁으로 먹을 만한 메뉴 추천해줘!',
+//     point: 1,
+//   ),
+//   MessageModel(
+//     date: DateTime(2026, 11, 17),
+//     id: 2,
+//     isMine: false,
+//     message: '칼칼한 김치찜은 어때요?!',
+//     point: null,
+//   ),
+// ];
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);   // const 생성자 : 최초 선언 후 변경 불가능한 빌드 타임 함수
@@ -51,19 +51,33 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       // ListView와 TextField를 세로로 정렬
       body: SafeArea(
         child: Column(
           children: [
             // ListView가 화면을 최대한으로 차지하도록 설정
             Expanded(
-              child: buildMessageList(),   // 화면에 로고와 메시지들을 보여주는 ListView 함수
+              // child: buildMessageList(),   // 화면에 로고와 메시지들을 보여주는 ListView 함수
+              child: StreamBuilder<List<MessageModel>>(
+                stream: GetIt.I<Isar>().messageModels.where().watch(fireImmediately: true),
+                builder: (context, snapshot) {
+                  final messages = snapshot.data ?? [];
+                  return buildMessageList(messages);
+                },
+              ),
             ),
-            ChatTextField(
-              controller: controller,
-              onSend: handleSendMessage,   // 채팅 입력 TextField 함수
-              error: error,
-              loading: isRunning,
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                vertical: 32.0,
+                horizontal: 8.0,
+              ),
+              child: ChatTextField(
+                controller: controller,
+                onSend: handleSendMessage,   // 채팅 입력 TextField 함수
+                error: error,
+                loading: isRunning,
+              ),
             ),
           ],
         ),
@@ -102,7 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
       controller.clear();   // TextField에 입력된 값 모두 삭제
 
       // 현재 데이터베이스에 저장되어 있는 내가 보낸 메시지 수 (포인트용)
-      final myMessageCount = await isar.messageModels.filter().isMineEqualTo(true).count();
+      final myMessagesCount = await isar.messageModels.filter().isMineEqualTo(true).count();
 
       // 내가 보낸 메시지 Isar에 저장
       currentUserMessageId = await isar.writeTxn(() async {
@@ -111,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
             date: DateTime.now(),
             isMine: true,
             message: currentPrompt,
-            point: myMessageCount + 1,
+            point: myMessagesCount + 1,
           ),
         );
       });
@@ -210,17 +224,17 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // 화면에 로고와 메시지들을 보여주는 ListView 함수
-  Widget buildMessageList() {
+  Widget buildMessageList(List<MessageModel> messages) {
     return ListView.separated(
       itemBuilder: (context, index) => index == 0
         ? buildLogo()
         : buildMessageItem(
-            message: sampleData[index - 1],
-            prevMessage: index > 1 ? sampleData[index - 2] : null,
+            message: messages[index - 1],
+            prevMessage: index > 1 ? messages[index - 2] : null,
             index: index - 1,
           ),
       separatorBuilder: (_, __) => const SizedBox(height: 16.0),
-      itemCount: sampleData.length + 1,
+      itemCount: messages.length + 1,
     );
   }
 
