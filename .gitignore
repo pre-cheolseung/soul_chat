@@ -47,6 +47,11 @@ app.*.map.json
 # Widget Preview related
 .widget_preview/
 
+# Firebase configuration file
+**/firebase_options.dart
+
 # 🤖 Android-related files
+google-services.json
+
 # 🍎 iOS-related files
-**/env.json
+GoogleService-Info.plist

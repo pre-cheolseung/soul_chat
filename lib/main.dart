@@ -1,12 +1,17 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:soul_chat/model/message_model.dart';
 import 'package:soul_chat/screen/home_screen.dart';
 
+import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:get_it/get_it.dart';
 import 'package:isar_community/isar.dart';
 import 'package:path_provider/path_provider.dart';
+
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();   // 플러터 프레임워크가 앱을 실행할 준비가 될 때까지 대기
@@ -31,7 +36,22 @@ void main() async {
     directory: dir.path,
   );
 
-  GetIt.I.registerSingleton<Isar>(isar);   // GetIt에 Isar 주입해서 프로젝트 어디에서든 사용
+  GetIt.I.registerSingleton<Isar>(isar);   // GetIt에 Isar를 주입해서 프로젝트 어디에서든 사용
+
+  // 플랫폼별 설정으로 Firebase 초기화
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // 개발(디버그) 테스트용 App Check 활성화
+  await FirebaseAppCheck.instance.activate(
+    providerAndroid: kDebugMode
+      ? const AndroidDebugProvider()
+      : const AndroidPlayIntegrityProvider(),
+    providerApple: kDebugMode
+      ? const AppleDebugProvider()
+      : const AppleAppAttestWithDeviceCheckFallbackProvider(),
+  );
 
   runApp(
     MaterialApp(
