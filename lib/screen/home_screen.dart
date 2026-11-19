@@ -88,8 +88,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // 채팅 입력 TextField 함수
   handleSendMessage() async {
-    // TextField에 입력된 메시지가 없으면 에러 출력
-    if(controller.text.isEmpty) {
+    if (isRunning) return;   // 이미 응답을 받는 중이면 중복 실행 방지
+
+    final currentPrompt = controller.text;   // TextField에 입력된 값을 저장하는 변수
+
+    // TextField에서 앞뒤 공백을 제거했을 때 입력된 메시지가 없으면 에러 출력 후 종료
+    if (currentPrompt.trim().isEmpty) {
       // 상태 변경 시 setState() 함수 실행
       // 값 변경 시 build() 함수 재실행
       // Clean -> setState() -> Dirty -> build() -> Clean
@@ -101,17 +105,15 @@ class _HomeScreenState extends State<HomeScreen> {
     int? currentModelMessageId;   // 현재 응답받고 있는 메시지 ID (스트림으로 지속적 업데이트)
     int? currentUserMessageId;   // 내가 보낸 메시지에 배정된 ID (에러가 발생하면 삭제)
     final isar = GetIt.I<Isar>();   // Isar 인스턴스 변수
-    final currentPrompt = controller.text;   // TextField에 입력된 값을 저장하는 변수
-
-    if (currentPrompt.trim().isEmpty) return;   // 빈 값 전송 방지
 
     try {
-      // 로딩 중으로 상태 변경
+      // 로딩 중으로 상태 변경 및 기존 에러 메시지 초기화
       // 상태 변경 시 setState() 함수 실행
       // 값 변경 시 build() 함수 재실행
       // Clean -> setState() -> Dirty -> build() -> Clean
       setState(() {
         isRunning = true;
+        error = null;
       });
 
       controller.clear();   // TextField에 입력된 값 모두 삭제
@@ -164,61 +166,39 @@ class _HomeScreenState extends State<HomeScreen> {
       );
 
       String message = '';   // Stream으로 받아지는 메시지를 지속적으로 추가할 문자열
+      String lastSavedMessage = '';   // 마지막으로 Isar에 저장된 텍스트 추적용
+      final responseDate = DateTime.now();    // 응답 시작 시간을 루프 밖에서 고정
+      DateTime lastDbUpdate = DateTime.fromMillisecondsSinceEpoch(0);   // 마지막 Isar 쓰기 시간
+      const updateInterval = Duration(milliseconds: 100);   // Isar 쓰기 최소 간격 (0.1초)
 
-      // // generateContentStream을 실행하면 Stream으로 응답 수신 가능
-      // model.generateContentStream(promptContext).listen(
-      //   (event) async {
-      //     // 응답 메시지가 있다면 message 변수에 추가
-      //     if (event.text != null) {
-      //       message += event.text!;
-      //     }
+      // DB 저장을 처리하는 내부 헬퍼 함수
+      Future<void> saveResponseToIsar(String textToSave) async {
+        // message 변수를 기반으로 MessageModel을 생성하여 변수에 저장
+        final responseModel = MessageModel(
+          date: responseDate,   // 고정된 시간 사용
+          isMine: false,
+          message: textToSave,
+        );
 
-      //     // message 변수를 기반으로 MessageModel을 생성
-      //     final MessageModel model = MessageModel(
-      //       date: DateTime.now(),
-      //       isMine: false,
-      //       message: message,
-      //     );
+        final existingId = currentModelMessageId;   // 로컬 변수로 복사하면 타입 승격 작동
 
-      //     // 이미 메시지를 생성한 적이 있다면 model 변수에 id 프로퍼티를 추가
-      //     if (currentModelMessageId != null) {
-      //       model.id = currentModelMessageId!;
-      //     }
+        // 이미 메시지를 생성한 적이 있다면 model 변수에 id 프로퍼티를 추가
+        if (existingId != null) {
+          responseModel.id = existingId;
+        }
 
-      //     // 메시지를 저장하고 받환받은 ID 값을 currentModelMessageId에 할당
-      //     currentModelMessageId = await isar.writeTxn<int>(() => isar.messageModels.put(model));
-      //   },
-
-      //   // Stream이 끝나면 로딩 상태 업데이트
-      //   // 상태 변경 시 setState() 함수 실행
-      //   // 값 변경 시 build() 함수 재실행
-      //   // Clean -> setState() -> Dirty -> build() -> Clean
-      //   onDone: () => setState(() {
-      //     isRunning = false;
-      //   }),
-
-      //   // 에러가 발생하면 생성했던 내 메시지를 삭제하고 에러 및 로딩 상태 업데이트
-      //   onError: (e) async {
-      //     await isar.writeTxn(() async {
-      //       return isar.messageModels.delete(currentUserMessageId!);
-      //     });
-
-      //     // 상태 변경 시 setState() 함수 실행
-      //     // 값 변경 시 build() 함수 재실행
-      //     // Clean -> setState() -> Dirty -> build() -> Clean
-      //     setState(() {
-      //       error = e.toString();
-      //       isRunning = false;
-      //     });
-
-      //     debugPrint('Error : $e');
-      //   },
-      // );
+        // 메시지를 저장하고 받환받은 ID 값을 currentModelMessageId에 할당
+        currentModelMessageId = await isar.writeTxn<int>(
+          () => isar.messageModels.put(responseModel),
+        );
+        
+        lastSavedMessage = textToSave;
+        lastDbUpdate = DateTime.now();
+      }
 
       // generateContentStream을 실행하면 Stream으로 응답 수신 가능
       // 위 listen 코드 대신 await for를 사용해 청크를 순서대로 안전하게 처리
       final responseStream = model.generateContentStream(promptContext);
-      final responseDate = DateTime.now();    // 응답 시작 시간을 루프 밖에서 고정
 
       await for (final event in responseStream) {
         final chunk = event.text;
@@ -227,22 +207,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
         message += chunk;
 
-        // message 변수를 기반으로 MessageModel을 생성하여 변수에 저장
-        final responseModel = MessageModel(
-          date: responseDate,   // 고정된 시간 사용
-          isMine: false,
-          message: message,
-        );
-
-        // 이미 메시지를 생성한 적이 있다면 model 변수에 id 프로퍼티를 추가
-        if (currentModelMessageId != null) {
-          responseModel.id = currentModelMessageId;
+        // 마지막 저장 후 100ms가 지났을 때만 Isar 업데이트 (쓰로틀링 최적화)
+        if (DateTime.now().difference(lastDbUpdate) >= updateInterval) {
+          await saveResponseToIsar(message);
         }
+      }
 
-        // 메시지를 저장하고 받환받은 ID 값을 currentModelMessageId에 할당
-        currentModelMessageId = await isar.writeTxn<int>(
-          () => isar.messageModels.put(responseModel),
-        );
+      // Stream 종료 후, 100ms 간격 때문에 아직 저장되지 않은 마지막 잔여 텍스트가 있다면 최종 저장
+      if (message.isNotEmpty && message != lastSavedMessage) {
+        await saveResponseToIsar(message);
       }
 
       // Stream이 끝났는데도 받은 텍스트가 전혀 없는 경우 확인을 위한 로그
@@ -250,15 +223,25 @@ class _HomeScreenState extends State<HomeScreen> {
         debugPrint('Warning : The stream has completed, but no text has been received');
       }
     } catch (e) {
-      // 에러 발생 시 내가 보낸 메시지 및 생성 중이던 AI 메시지 삭제
+      // 클로저 진입 전에 로컬 변수로 복사하거나 '!' 연산자 사용
+      final userMsgId = currentUserMessageId;
+      final modelMsgId = currentModelMessageId;
+      
+      // 에러 발생 시 Isar에서 내가 보낸 메시지 및 생성 중이던 AI 메시지 삭제
       await isar.writeTxn(() async {
-        if (currentUserMessageId != null) {
-          await isar.messageModels.delete(currentUserMessageId);
+        if (userMsgId != null) {
+          await isar.messageModels.delete(userMsgId);
         }
-        if (currentModelMessageId != null) {
-          await isar.messageModels.delete(currentModelMessageId);
+        if (modelMsgId != null) {
+          await isar.messageModels.delete(modelMsgId);
         }
       });
+
+      // 사용자가 다시 입력하지 않도록 TextField에 원래 입력값 복원 및 커서 맨 끝 이동
+      controller.text = currentPrompt;
+      controller.selection = TextSelection.fromPosition(
+        TextPosition(offset: controller.text.length),
+      );
 
       if (mounted) {
       // 에러가 있을 경우 SnackBar로 에러 메시지 표시
