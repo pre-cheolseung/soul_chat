@@ -103,6 +103,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final isar = GetIt.I<Isar>();   // Isar 인스턴스 변수
     final currentPrompt = controller.text;   // TextField에 입력된 값을 저장하는 변수
 
+    if (currentPrompt.trim().isEmpty) return;   // 빈 값 전송 방지
+
     try {
       // 로딩 중으로 상태 변경
       // 상태 변경 시 setState() 함수 실행
@@ -216,6 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
       // generateContentStream을 실행하면 Stream으로 응답 수신 가능
       // 위 listen 코드 대신 await for를 사용해 청크를 순서대로 안전하게 처리
       final responseStream = model.generateContentStream(promptContext);
+      final responseDate = DateTime.now();    // 응답 시작 시간을 루프 밖에서 고정
 
       await for (final event in responseStream) {
         final chunk = event.text;
@@ -226,7 +229,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
         // message 변수를 기반으로 MessageModel을 생성하여 변수에 저장
         final responseModel = MessageModel(
-          date: DateTime.now(),
+          date: responseDate,   // 고정된 시간 사용
           isMine: false,
           message: message,
         );
@@ -246,33 +249,47 @@ class _HomeScreenState extends State<HomeScreen> {
       if (message.isEmpty) {
         debugPrint('Warning : The stream has completed, but no text has been received');
       }
-
-      // Stream이 끝나면 로딩 상태 업데이트
-      // 상태 변경 시 setState() 함수 실행
-      // 값 변경 시 build() 함수 재실행
-      // Clean -> setState() -> Dirty -> build() -> Clean
-      setState(() {
-        isRunning = false;
+    } catch (e) {
+      // 에러 발생 시 내가 보낸 메시지 및 생성 중이던 AI 메시지 삭제
+      await isar.writeTxn(() async {
+        if (currentUserMessageId != null) {
+          await isar.messageModels.delete(currentUserMessageId);
+        }
+        if (currentModelMessageId != null) {
+          await isar.messageModels.delete(currentModelMessageId);
+        }
       });
 
-    } catch (e) {
+      if (mounted) {
       // 에러가 있을 경우 SnackBar로 에러 메시지 표시
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: Colors.redAccent,
-          content: Text(e.toString()),
-          behavior: SnackBarBehavior.floating,   // 화면 위에 떠 있는 스타일
-          // 확인 버튼
-          action: SnackBarAction(
-            label: 'Confirm',
-            textColor: Colors.white,
-            onPressed: () {
-              ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            },
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.redAccent,
+            content: Text(e.toString()),
+            behavior: SnackBarBehavior.floating,   // 화면 위에 떠 있는 스타일
+            // 확인 버튼
+            action: SnackBarAction(
+              label: 'Confirm',
+              textColor: Colors.white,
+              onPressed: () {
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              },
+            ),
           ),
-        ),
-      );
+        );
+      }
+
       debugPrint('Error : $e');
+    } finally {
+      // 성공하든 에러가 나든 Stream이 끝나면 로딩 상태 해제
+      // 상태 변경 시 setState() 함수 실행
+      // 값 변경 시 build() 함수 재실행
+      // Clean -> setState() -> Dirty -> build() -> Clean
+      if (mounted) {
+        setState(() {
+          isRunning = false;
+        });
+      }
     }
   }
 
