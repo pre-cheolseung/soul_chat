@@ -45,6 +45,11 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  // Stream을 저장할 변수 선언과 동시에 초기화
+  // 화면이 열릴 때 딱 한 번만 Stream 생성 (날짜순 정렬 포함)
+  final Stream<List<MessageModel>> _messageStream = 
+    GetIt.I<Isar>().messageModels.where().sortByDate().watch(fireImmediately: true);
+
   final TextEditingController controller = TextEditingController();
   final ScrollController scrollController = ScrollController();
   bool isRunning = false;   // 로딩 여부를 확인하는 변수
@@ -52,36 +57,44 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      // ListView와 TextField를 세로로 정렬
-      body: SafeArea(
-        child: Column(
-          children: [
-            // ListView가 화면을 최대한으로 차지하도록 설정
-            Expanded(
-              child: StreamBuilder<List<MessageModel>>(
-                stream: GetIt.I<Isar>().messageModels.where().watch(fireImmediately: true),
-                builder: (context, snapshot) {
-                  final messages = snapshot.data ?? [];
-                  WidgetsBinding.instance.addPostFrameCallback((_) async => scrollToBottom());   // ListView의 가장 아래로 이동하는 함수
-                  return buildMessageList(messages);   // 화면에 로고와 메시지들을 보여주는 ListView 함수
-                },
+    final isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;   // 키보드가 올라와 있는지 확인
+
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),   // 채팅 빈 화면을 터치하면 키보드 내리기
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        resizeToAvoidBottomInset: true, //   명시적으로 활성화 (기본값)
+        // ListView와 TextField를 세로로 정렬
+        body: SafeArea(
+          child: Column(
+            children: [
+              // ListView가 화면을 최대한으로 차지하도록 설정
+              Expanded(
+                child: StreamBuilder<List<MessageModel>>(
+                  stream: _messageStream,   // 매번 새로 생성하지 않고 미리 만들어둔 변수 연결
+                  builder: (context, snapshot) {
+                    final messages = snapshot.data ?? [];
+                    WidgetsBinding.instance.addPostFrameCallback((_) async => scrollToBottom());   // ListView의 가장 아래로 이동하는 함수
+                    return buildMessageList(messages);   // 화면에 로고와 메시지들을 보여주는 ListView 함수
+                  },
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                vertical: 32.0,
-                horizontal: 8.0,
+              Padding(
+                padding: EdgeInsets.only(
+                  top: 8.0,
+                  left: 8.0,
+                  right: 8.0,
+                  bottom: isKeyboardOpen ? 8.0 : 24.0,   // 키보드가 열렸을 때는 여백을 좁히고, 닫혔을 때만 여유 있게 설정
+                ),
+                child: ChatTextField(
+                  controller: controller,
+                  onSend: handleSendMessage,   // 채팅 입력 TextField 함수
+                  error: error,
+                  loading: isRunning,
+                ),
               ),
-              child: ChatTextField(
-                controller: controller,
-                onSend: handleSendMessage,   // 채팅 입력 TextField 함수
-                error: error,
-                loading: isRunning,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
