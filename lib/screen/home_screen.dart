@@ -3,22 +3,13 @@ import 'dart:ui';   // ImageFilter.blur 사용
 import 'package:flutter/material.dart';
 
 import 'package:soul_chat/components/chat_text_field.dart';
-import 'package:soul_chat/components/date_divider.dart';
-import 'package:soul_chat/components/logo.dart';
-import 'package:soul_chat/components/message.dart';
 import 'package:soul_chat/model/message_model.dart';
 import 'package:soul_chat/service/chat_ai_service.dart';
+import 'package:soul_chat/widget/message_list_view.dart';
 import 'package:soul_chat/widget/scroll_to_bottom_button.dart';
 
-import 'package:firebase_ai/firebase_ai.dart';
 import 'package:get_it/get_it.dart';
-import 'package:intl/intl.dart';
 import 'package:isar_community/isar.dart';
-
-DateTime now = DateTime.now();
-// String monthShort = DateFormat('MMM', 'en_US').format(now);   // 월을 영어 약자로 표시 (예: Nov)
-String monthLong = DateFormat('MMMM', 'en_US').format(now);   // 월을 영어 전체 이름으로 표시 (예: November)
-// String fullDate = DateFormat.yMMMd('en_US').format(now);   // 연, 월, 일을 영어 형식으로 표시 (예: Nov 17, 2026)
 
 // 샘플 데이터
 // final sampleData = [
@@ -73,9 +64,19 @@ class _HomeScreenState extends State<HomeScreen> {
   void _scrollListener() {
     if (!scrollController.hasClients) return;
 
+    final isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
+
+    // 키보드가 올라와 있는 상태거나 화면 크기가 변하는 중에는 버튼 깜빡임 방지
+    if (isKeyboardOpen) {
+      if (showScrollToBottom) {
+        setState(() => showScrollToBottom = false);
+      }
+      return;
+    }
+
     final maxScroll = scrollController.position.maxScrollExtent;
     final currentScroll = scrollController.position.pixels;
-    final shouldShow = (maxScroll - currentScroll) > 150;   // 맨 아래(maxScroll)에서 위로 150px 이상 올라갔을 때만 버튼 표시
+    final shouldShow = (maxScroll - currentScroll) > 200;   // 맨 아래(maxScroll)에서 위로 200px 이상 올라갔을 때만 버튼 표시
 
     // 상태가 실제로 바뀔 때만 setState 호출 (스크롤 중 불필요한 화면 재빌드 방지)
     if (showScrollToBottom != shouldShow) {
@@ -109,10 +110,12 @@ class _HomeScreenState extends State<HomeScreen> {
         body: SafeArea(
           child: Column(
             children: [
+              // 채팅 목록 + 맨 아래로 내리기 버튼 영역
               // ListView가 화면을 최대한으로 차지하도록 설정
               Expanded(
                 child: Stack(
                   children: [
+                    // 분리된 채팅 목록 위젯
                     StreamBuilder<List<MessageModel>>(
                       stream: _messageStream,   // 매번 새로 생성하지 않고 미리 만들어둔 변수 연결
                       builder: (context, snapshot) {
@@ -122,7 +125,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         if (!showScrollToBottom) {
                           WidgetsBinding.instance.addPostFrameCallback((_) => scrollToBottom());
                         }
-                        return buildMessageList(messages);   // 화면에 로고와 메시지들을 보여주는 ListView 함수
+                        // 화면에 로고와 메시지들을 보여주는 ListView 함수
+                        return MessageListView(
+                          scrollController: scrollController,
+                          messages: messages,
+                        );
                       },
                     ),
                     // 위로 스크롤했을 때만 나타나는 맨 아래로 내리기 버튼
@@ -144,6 +151,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
+              // 하단 채팅 입력창 영역
               Padding(
                 padding: EdgeInsets.only(
                   top: 8.0,
@@ -154,6 +162,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: ChatTextField(
                   controller: controller,
                   onSend: handleSendMessage,   // 채팅 입력 TextField 함수
+                  // 입력창을 누르면 키보드가 올라오는 타이밍에 맞춰 대화의 맨 아래로 이동
+                  // onTap: () {
+                  //   Future.delayed(const Duration(milliseconds: 300), () {
+                  //     scrollToBottom();
+                  //   });
+                  // },
                   error: error,
                   loading: isRunning,
                 ),
@@ -248,78 +262,5 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     }
-  }
-
-  // 화면에 로고와 메시지들을 보여주는 ListView 함수
-  Widget buildMessageList(List<MessageModel> messages) {
-    return ListView.separated(
-      controller: scrollController,   // 선언한 컨트롤러를 ListView에 입력
-      itemBuilder: (context, index) => index == 0
-        ? buildLogo()
-        : buildMessageItem(
-            message: messages[index - 1],
-            prevMessage: index > 1 ? messages[index - 2] : null,
-            index: index - 1,
-          ),
-      separatorBuilder: (_, __) => const SizedBox(height: 16.0),
-      itemCount: messages.length + 1,
-    );
-  }
-
-  // 로고를 보여줄 위젯
-  Widget buildLogo() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: const Padding(
-        padding: EdgeInsets.only(bottom: 60.0),
-        child: Logo(),
-      ),
-    );
-  }
-
-  // 메시지를 화면에 그리는 함수
-  Widget buildMessageItem({
-    MessageModel? prevMessage,
-    required MessageModel message,
-    required int index,
-  }) {
-    final isMine = message.isMine;
-    // DateDivider 위젯을 그려야 하는지 판단
-    final shouldDrawDateDivider = prevMessage == null || shouldDrawDate(prevMessage.date, message.date);
-
-    return Column(
-      children: [
-        // DateDivider 위젯을 그려야 하는지 판단
-        if (shouldDrawDateDivider)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16.0),
-            child: DateDivider(date: message.date),
-          ),
-        // 정렬 위치에 따라 패딩 다르게 제공
-        Padding(
-          padding: EdgeInsets.only(
-            left: isMine ? 64.0 : 16.0,
-            right: isMine ? 16.0 : 64.0,
-          ),
-          child: Message(
-            alignLeft: !isMine,
-            message: message.message.trim(),
-            point: message.point,
-          ),
-        ),
-      ],
-    );
-  }
-
-  // String으로 반환된 날짜라 다를 경우 true 반환
-  bool shouldDrawDate(DateTime date1, DateTime date2) {
-    return getStringDate(date1) != getStringDate(date2);
-  }
-
-  // DateTime을 '2026년 11월 17일' 형태로 반환
-  // DateTime을 'November 17, 2026' 형태로 반환
-  String getStringDate(DateTime date) {
-    // return '${date.year}년 ${date.month}월 ${date.day}일';
-    return '$monthLong ${date.day}, ${date.year}';
   }
 }
