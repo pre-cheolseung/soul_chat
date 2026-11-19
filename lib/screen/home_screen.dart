@@ -8,7 +8,6 @@ import 'package:soul_chat/model/message_model.dart';
 
 import 'package:firebase_ai/firebase_ai.dart';
 import 'package:get_it/get_it.dart';
-// import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:intl/intl.dart';
 import 'package:isar_community/isar.dart';
 
@@ -47,6 +46,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController controller = TextEditingController();
+  final ScrollController scrollController = ScrollController();
   bool isRunning = false;   // 로딩 여부를 확인하는 변수
   String? error;   // 에러 메시지 변수
 
@@ -64,6 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 stream: GetIt.I<Isar>().messageModels.where().watch(fireImmediately: true),
                 builder: (context, snapshot) {
                   final messages = snapshot.data ?? [];
+                  WidgetsBinding.instance.addPostFrameCallback((_) async => scrollToBottom());   // ListView의 가장 아래로 이동하는 함수
                   return buildMessageList(messages);   // 화면에 로고와 메시지들을 보여주는 ListView 함수
                 },
               ),
@@ -86,8 +87,21 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // ListView 의 가장 아래로 이동하는 함수
+  void scrollToBottom() {
+    // 현재 위치가 최대 스크롤 가능 위치가 아닐 때만 실행
+    if (scrollController.position.pixels != scrollController.position.maxScrollExtent) {
+      // 원하는 위치까지 스크롤을 가능하도록 하는 함수
+      scrollController.animateTo(
+        scrollController.position.maxScrollExtent,   // 최대 스크롤 가능한 위치를 pixel로 제공
+        duration: const Duration(milliseconds: 300),   // 약 300ms에 걸쳐서 스크롤 애니메이션을 실행
+        curve: Curves.easeOut,   // 애니메이션이 끝날수록 느려지는 유형으로 실행
+      );
+    }
+  }
+
   // 채팅 입력 TextField 함수
-  handleSendMessage() async {
+  void handleSendMessage() async {
     if (isRunning) return;   // 이미 응답을 받는 중이면 중복 실행 방지
 
     final currentPrompt = controller.text;   // TextField에 입력된 값을 저장하는 변수
@@ -279,6 +293,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // 화면에 로고와 메시지들을 보여주는 ListView 함수
   Widget buildMessageList(List<MessageModel> messages) {
     return ListView.separated(
+      controller: scrollController,   // 선언한 컨트롤러를 ListView에 입력
       itemBuilder: (context, index) => index == 0
         ? buildLogo()
         : buildMessageItem(
