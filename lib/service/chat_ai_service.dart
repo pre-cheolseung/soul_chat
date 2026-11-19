@@ -133,4 +133,10 @@ class ChatAiService {
       rethrow;   // UI에서 SnackBar와 입력창 복원을 처리할 수 있도록 에러 전달
     }
   }
+
+  Future<void> clearAllMessages() async {
+    await _isar.writeTxn(() async {
+      await _isar.messageModels.clear();   // 컬렉션의 모든 메시지 삭제
+    });
+  }
 }

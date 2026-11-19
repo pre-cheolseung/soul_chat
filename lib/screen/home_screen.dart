@@ -105,9 +105,35 @@ class _HomeScreenState extends State<HomeScreen> {
       onTap: () => FocusScope.of(context).unfocus(),   // 채팅 빈 화면을 터치하면 키보드 내리기
       child: Scaffold(
         backgroundColor: Colors.white,
-        resizeToAvoidBottomInset: true, //   명시적으로 활성화 (기본값)
+        resizeToAvoidBottomInset: true,   // 명시적으로 활성화 (기본값)
+        // appBar: AppBar(
+        //   backgroundColor: Colors.white,
+        //   surfaceTintColor: Colors.transparent,   // 스크롤 시 앱바 색상이 변하는 현상 방지
+        //   scrolledUnderElevation: 0,   // 스크롤 시 그림자 생김 방지
+        //   elevation: 0,
+        //   toolbarHeight: 48.0,   // 앱바 높이를 살짝 슬림하게 조절
+        //   // 앱바와 채팅 목록 경계가 자연스럽도록 아주 옅은 구분선 추가
+        //   bottom: PreferredSize(
+        //     preferredSize: const Size.fromHeight(1.0),
+        //     child: Container(
+        //       color: Colors.grey.shade100,
+        //       height: 1.0,
+        //     ),
+        //   ),
+        //   actions: [
+        //     IconButton(
+        //       icon: const Icon(
+        //         Icons.delete_outline,
+        //         color: Colors.black87
+        //       ),
+        //       tooltip: 'Conversation Reset',
+        //       onPressed: _handleClearChat,
+        //     ),
+        //   ],
+        // ),
         // ListView와 TextField를 세로로 정렬
         body: SafeArea(
+          // top: false,   // AppBar 사용 시 설정
           child: Column(
             children: [
               // 채팅 목록 + 맨 아래로 내리기 버튼 영역
@@ -131,6 +157,23 @@ class _HomeScreenState extends State<HomeScreen> {
                           messages: messages,
                         );
                       },
+                    ),
+                    // 오른쪽 상단 대화 초기화 버튼 (배경 없이 깔끔하게 배치)
+                    Positioned(
+                      top: 8.0,
+                      right: 12.0,
+                      child: IconButton(
+                        onPressed: _handleClearChat,
+                        tooltip: 'Conversation Reset',
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.white.withValues(alpha: 0.8),   // 말풍선과 겹쳐도 잘 보이게 반투명 배경
+                        ),
+                        icon: const Icon(
+                          Icons.delete_outline_rounded,
+                          color: Colors.black54,
+                          size: 22.0,
+                        ),
+                      ),
                     ),
                     // 위로 스크롤했을 때만 나타나는 맨 아래로 내리기 버튼
                     // 다크 및 포인트 컬러 알약형 버튼 (텍스트 + 아이콘)
@@ -259,6 +302,43 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) {
         setState(() {
           isRunning = false;
+        });
+      }
+    }
+  }
+
+  // 전체 삭제 확인 팝업 및 실행 함수
+  Future<void> _handleClearChat() async {
+    if (isRunning) return;   // AI가 응답을 생성하는 중에는 삭제 방지
+
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear Chat History'),
+        content: const Text(
+          'All conversation history will be deleted and cannot be recovered.'
+          '\nAre you sure you want to DELETE it?'
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('DELETE'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete == true) {
+      await _chatAiService.clearAllMessages();
+
+      if (mounted) {
+        setState(() {
+          showScrollToBottom = false;   // 하단 이동 버튼 상태 초기화
         });
       }
     }
