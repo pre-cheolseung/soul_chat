@@ -1,3 +1,5 @@
+import 'dart:ui';   // ImageFilter.blur 사용
+
 import 'package:flutter/material.dart';
 
 import 'package:soul_chat/components/chat_text_field.dart';
@@ -5,6 +7,7 @@ import 'package:soul_chat/components/date_divider.dart';
 import 'package:soul_chat/components/logo.dart';
 import 'package:soul_chat/components/message.dart';
 import 'package:soul_chat/model/message_model.dart';
+import 'package:soul_chat/widget/scroll_to_bottom_button.dart';
 
 import 'package:firebase_ai/firebase_ai.dart';
 import 'package:get_it/get_it.dart';
@@ -52,8 +55,44 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final TextEditingController controller = TextEditingController();
   final ScrollController scrollController = ScrollController();
+  bool showScrollToBottom = false;   // 맨 아래로 내리기 버튼 표시 여부 상태 변수
   bool isRunning = false;   // 로딩 여부를 확인하는 변수
   String? error;   // 에러 메시지 변수
+
+  @override
+  void initState() {
+    super.initState();
+
+    // 스크롤 위치가 바뀔 때마다 실행될 리스너 등록
+    scrollController.addListener(_scrollListener);
+  }
+
+  // 스크롤 위치를 계산해 버튼을 보여줄지 숨길지 결정하는 함수
+  void _scrollListener() {
+    if (!scrollController.hasClients) return;
+
+    final maxScroll = scrollController.position.maxScrollExtent;
+    final currentScroll = scrollController.position.pixels;
+    final shouldShow = (maxScroll - currentScroll) > 150;   // 맨 아래(maxScroll)에서 위로 150px 이상 올라갔을 때만 버튼 표시
+
+    // 상태가 실제로 바뀔 때만 setState 호출 (스크롤 중 불필요한 화면 재빌드 방지)
+    if (showScrollToBottom != shouldShow) {
+      // 상태 변경 시 setState() 함수 실행
+      // 값 변경 시 build() 함수 재실행
+      // Clean -> setState() -> Dirty -> build() -> Clean
+      setState(() {
+        showScrollToBottom = shouldShow;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    scrollController.removeListener(_scrollListener);   // 리스너 해제
+    scrollController.dispose();
+
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,13 +109,37 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               // ListView가 화면을 최대한으로 차지하도록 설정
               Expanded(
-                child: StreamBuilder<List<MessageModel>>(
-                  stream: _messageStream,   // 매번 새로 생성하지 않고 미리 만들어둔 변수 연결
-                  builder: (context, snapshot) {
-                    final messages = snapshot.data ?? [];
-                    WidgetsBinding.instance.addPostFrameCallback((_) async => scrollToBottom());   // ListView의 가장 아래로 이동하는 함수
-                    return buildMessageList(messages);   // 화면에 로고와 메시지들을 보여주는 ListView 함수
-                  },
+                child: Stack(
+                  children: [
+                    StreamBuilder<List<MessageModel>>(
+                      stream: _messageStream,   // 매번 새로 생성하지 않고 미리 만들어둔 변수 연결
+                      builder: (context, snapshot) {
+                        final messages = snapshot.data ?? [];
+                        // ListView의 가장 아래로 이동하는 함수
+                        // '맨 아래에 있을 때(버튼이 안 보일 때)'만 새 메시지에 맞춰 따라 하강
+                        if (!showScrollToBottom) {
+                          WidgetsBinding.instance.addPostFrameCallback((_) => scrollToBottom());
+                        }
+                        return buildMessageList(messages);   // 화면에 로고와 메시지들을 보여주는 ListView 함수
+                      },
+                    ),
+                    // 위로 스크롤했을 때만 나타나는 맨 아래로 내리기 버튼
+                    // 다크 및 포인트 컬러 알약형 버튼 (텍스트 + 아이콘)
+                    ScrollToBottomButton(
+                      isVisible: showScrollToBottom,
+                      onTap: scrollToBottom,
+                    ),
+                    // 깔끔한 원형 버튼 + 얇은 테두리 (ChatGPT 스타일)
+                    // 가운데 배치는 left: 0, right: 0, child를 Center로 변경
+                    // Positioned(
+                    //   right: 16.0,
+                    //   bottom: 16.0,
+                    //   child: ScrollToBottomButton(
+                    //     isVisible: showScrollToBottom,
+                    //     onTap: scrollToBottom,
+                    //   ),
+                    // ),
+                  ],
                 ),
               ),
               Padding(
@@ -102,6 +165,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // ListView 의 가장 아래로 이동하는 함수
   void scrollToBottom() {
+    if (!scrollController.hasClients) return;
+    
     // 현재 위치가 최대 스크롤 가능 위치가 아닐 때만 실행
     if (scrollController.position.pixels != scrollController.position.maxScrollExtent) {
       // 원하는 위치까지 스크롤을 가능하도록 하는 함수
@@ -144,6 +209,7 @@ class _HomeScreenState extends State<HomeScreen> {
       });
 
       controller.clear();   // TextField에 입력된 값 모두 삭제
+      scrollToBottom();   // 옛날 대화를 읽다가(버튼이 떠 있는 상태에서) 새 메시지를 전송했을 때 바로 맨 아래로 하강
 
       // 현재 데이터베이스에 저장되어 있는 내가 보낸 메시지 수 (포인트용)
       final myMessagesCount = await isar.messageModels.filter().isMineEqualTo(true).count();
