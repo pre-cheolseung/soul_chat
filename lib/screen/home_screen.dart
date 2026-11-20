@@ -127,7 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
         //         color: Colors.black87
         //       ),
         //       tooltip: 'Conversation Reset',
-        //       onPressed: _handleClearChat,
+        //       onPressed: _handleClearChat,   // 전체 삭제 확인 팝업 및 실행 함수
         //     ),
         //   ],
         // ),
@@ -163,7 +163,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       top: 8.0,
                       right: 12.0,
                       child: IconButton(
-                        onPressed: _handleClearChat,
+                        onPressed: _handleClearChat,   // 전체 삭제 확인 팝업 및 실행 함수
                         tooltip: 'Conversation Reset',
                         style: IconButton.styleFrom(
                           backgroundColor: Colors.white.withValues(alpha: 0.8),   // 말풍선과 겹쳐도 잘 보이게 반투명 배경
