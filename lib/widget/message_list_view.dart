@@ -43,7 +43,11 @@ class MessageListView extends StatelessWidget {
   // 로고를 보여줄 위젯
   Widget _buildLogo() {
     return const Padding(
-      padding: EdgeInsets.only(left: 16.0, right: 16.0, bottom: 60.0),
+      padding: EdgeInsets.only(
+        left: 16.0,
+        right: 16.0,
+        bottom: 60.0
+      ),
       child: Logo(),
     );
   }
@@ -76,6 +80,8 @@ class MessageListView extends StatelessWidget {
             alignLeft: !isMine,
             message: message.message.trim(),
             point: message.point,
+            filePath: message.filePath,
+            mimeType: message.mimeType,
           ),
         ),
       ],

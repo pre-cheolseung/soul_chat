@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui';   // ImageFilter.blur 사용
 
 import 'package:flutter/material.dart';
@@ -8,6 +9,7 @@ import 'package:soul_chat/service/chat_ai_service.dart';
 import 'package:soul_chat/widget/message_list_view.dart';
 import 'package:soul_chat/widget/scroll_to_bottom_button.dart';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:get_it/get_it.dart';
 import 'package:isar_community/isar.dart';
 
@@ -51,6 +53,8 @@ class _HomeScreenState extends State<HomeScreen> {
   bool showScrollToBottom = false;   // 맨 아래로 내리기 버튼 표시 여부 상태 변수
   bool isRunning = false;   // 로딩 여부를 확인하는 변수
   String? error;   // 에러 메시지 변수
+  File? selectedFile;   // 파일 선택 변수
+
 
   @override
   void initState() {
@@ -211,6 +215,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   //     scrollToBottom();
                   //   });
                   // },
+                  onPickFile: _pickFile,
+                  onRemoveFile: _removeFile,
+                  selectedFile: selectedFile,
                   error: error,
                   loading: isRunning,
                 ),
@@ -242,9 +249,10 @@ class _HomeScreenState extends State<HomeScreen> {
     if (isRunning) return;   // 이미 응답을 받는 중이면 중복 실행 방지
 
     final currentPrompt = controller.text;   // TextField에 입력된 값을 저장하는 변수
+    final fileToSend = selectedFile;   // 현재 첨부된 파일 임시 보관
 
-    // TextField에서 앞뒤 공백을 제거했을 때 입력된 메시지가 없으면 에러 출력 후 종료
-    if (currentPrompt.trim().isEmpty) {
+    // TextField에서 앞뒤 공백을 제거했을 때 텍스트와 파일 둘 다 비어있을 경우에만 에러 표시 (파일만 단독 전송 허용)
+    if (currentPrompt.trim().isEmpty && fileToSend == null) {
       // 상태 변경 시 setState() 함수 실행
       // 값 변경 시 build() 함수 재실행
       // Clean -> setState() -> Dirty -> build() -> Clean
@@ -261,15 +269,21 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         isRunning = true;
         error = null;
+        selectedFile = null;   // 전송 시작과 동시에 미리보기 숨김
       });
 
       controller.clear();   // TextField에 입력된 값 모두 삭제
       scrollToBottom();   // 옛날 대화를 읽다가(버튼이 떠 있는 상태에서) 새 메시지를 전송했을 때 바로 맨 아래로 하강
 
-      await _chatAiService.sendMessage(currentPrompt);   // 무거운 DB 및 AI 스트림 처리 서비스에 위임
+      // 무거운 DB 및 AI 스트림 처리 서비스에 위임
+      await _chatAiService.sendMessage(currentPrompt, file: fileToSend);   // 서비스에 텍스트와 파일을 함께 전달
+
     } catch (e) {
       // UI 복구 및 SnackBar 처리는 화면이 담당
-      // 사용자가 다시 입력하지 않도록 TextField에 원래 입력값 복원 및 커서 맨 끝 이동
+      // 에러 발생 시 사용자가 다시 입력하지 않도록 TextField에 원래 입력했던 텍스트와 첨부파일 모두 복원 및 커서 맨 끝 이동
+      setState(() {
+        selectedFile = fileToSend;
+      });
       controller.text = currentPrompt;
       controller.selection = TextSelection.fromPosition(
         TextPosition(offset: controller.text.length),
@@ -342,5 +356,27 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     }
+  }
+
+  // 파일 선택 함수
+  Future<void> _pickFile() async {
+  final pickedFile = await FilePicker.pickFile(
+    type: FileType.custom,
+    allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'pdf', 'txt'],
+  );
+
+  if (pickedFile != null && pickedFile.path != null) {
+    setState(() {
+      selectedFile = File(pickedFile.path!);
+      error = null;
+    });
+  }
+}
+
+  // 선택된 파일 제거 함수
+  void _removeFile() {
+    setState(() {
+      selectedFile = null;
+    });
   }
 }

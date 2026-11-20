@@ -18,9 +18,19 @@ const MessageModelSchema = CollectionSchema(
   id: -902762555029995869,
   properties: {
     r'date': PropertySchema(id: 0, name: r'date', type: IsarType.dateTime),
-    r'isMine': PropertySchema(id: 1, name: r'isMine', type: IsarType.bool),
-    r'message': PropertySchema(id: 2, name: r'message', type: IsarType.string),
-    r'point': PropertySchema(id: 3, name: r'point', type: IsarType.long),
+    r'filePath': PropertySchema(
+      id: 1,
+      name: r'filePath',
+      type: IsarType.string,
+    ),
+    r'isMine': PropertySchema(id: 2, name: r'isMine', type: IsarType.bool),
+    r'message': PropertySchema(id: 3, name: r'message', type: IsarType.string),
+    r'mimeType': PropertySchema(
+      id: 4,
+      name: r'mimeType',
+      type: IsarType.string,
+    ),
+    r'point': PropertySchema(id: 5, name: r'point', type: IsarType.long),
   },
 
   estimateSize: _messageModelEstimateSize,
@@ -44,7 +54,19 @@ int _messageModelEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  {
+    final value = object.filePath;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.message.length * 3;
+  {
+    final value = object.mimeType;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   return bytesCount;
 }
 
@@ -55,9 +77,11 @@ void _messageModelSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeDateTime(offsets[0], object.date);
-  writer.writeBool(offsets[1], object.isMine);
-  writer.writeString(offsets[2], object.message);
-  writer.writeLong(offsets[3], object.point);
+  writer.writeString(offsets[1], object.filePath);
+  writer.writeBool(offsets[2], object.isMine);
+  writer.writeString(offsets[3], object.message);
+  writer.writeString(offsets[4], object.mimeType);
+  writer.writeLong(offsets[5], object.point);
 }
 
 MessageModel _messageModelDeserialize(
@@ -68,10 +92,12 @@ MessageModel _messageModelDeserialize(
 ) {
   final object = MessageModel(
     date: reader.readDateTime(offsets[0]),
+    filePath: reader.readStringOrNull(offsets[1]),
     id: id,
-    isMine: reader.readBool(offsets[1]),
-    message: reader.readString(offsets[2]),
-    point: reader.readLongOrNull(offsets[3]),
+    isMine: reader.readBool(offsets[2]),
+    message: reader.readString(offsets[3]),
+    mimeType: reader.readStringOrNull(offsets[4]),
+    point: reader.readLongOrNull(offsets[5]),
   );
   return object;
 }
@@ -86,10 +112,14 @@ P _messageModelDeserializeProp<P>(
     case 0:
       return (reader.readDateTime(offset)) as P;
     case 1:
-      return (reader.readBool(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 2:
-      return (reader.readString(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 3:
+      return (reader.readString(offset)) as P;
+    case 4:
+      return (reader.readStringOrNull(offset)) as P;
+    case 5:
       return (reader.readLongOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -249,6 +279,165 @@ extension MessageModelQueryFilter
           upper: upper,
           includeUpper: includeUpper,
         ),
+      );
+    });
+  }
+
+  QueryBuilder<MessageModel, MessageModel, QAfterFilterCondition>
+  filePathIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'filePath'),
+      );
+    });
+  }
+
+  QueryBuilder<MessageModel, MessageModel, QAfterFilterCondition>
+  filePathIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'filePath'),
+      );
+    });
+  }
+
+  QueryBuilder<MessageModel, MessageModel, QAfterFilterCondition>
+  filePathEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'filePath',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<MessageModel, MessageModel, QAfterFilterCondition>
+  filePathGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'filePath',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<MessageModel, MessageModel, QAfterFilterCondition>
+  filePathLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'filePath',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<MessageModel, MessageModel, QAfterFilterCondition>
+  filePathBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'filePath',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<MessageModel, MessageModel, QAfterFilterCondition>
+  filePathStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'filePath',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<MessageModel, MessageModel, QAfterFilterCondition>
+  filePathEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'filePath',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<MessageModel, MessageModel, QAfterFilterCondition>
+  filePathContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'filePath',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<MessageModel, MessageModel, QAfterFilterCondition>
+  filePathMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'filePath',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<MessageModel, MessageModel, QAfterFilterCondition>
+  filePathIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'filePath', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<MessageModel, MessageModel, QAfterFilterCondition>
+  filePathIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'filePath', value: ''),
       );
     });
   }
@@ -464,6 +653,165 @@ extension MessageModelQueryFilter
   }
 
   QueryBuilder<MessageModel, MessageModel, QAfterFilterCondition>
+  mimeTypeIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'mimeType'),
+      );
+    });
+  }
+
+  QueryBuilder<MessageModel, MessageModel, QAfterFilterCondition>
+  mimeTypeIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'mimeType'),
+      );
+    });
+  }
+
+  QueryBuilder<MessageModel, MessageModel, QAfterFilterCondition>
+  mimeTypeEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'mimeType',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<MessageModel, MessageModel, QAfterFilterCondition>
+  mimeTypeGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'mimeType',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<MessageModel, MessageModel, QAfterFilterCondition>
+  mimeTypeLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'mimeType',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<MessageModel, MessageModel, QAfterFilterCondition>
+  mimeTypeBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'mimeType',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<MessageModel, MessageModel, QAfterFilterCondition>
+  mimeTypeStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'mimeType',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<MessageModel, MessageModel, QAfterFilterCondition>
+  mimeTypeEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'mimeType',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<MessageModel, MessageModel, QAfterFilterCondition>
+  mimeTypeContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'mimeType',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<MessageModel, MessageModel, QAfterFilterCondition>
+  mimeTypeMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'mimeType',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<MessageModel, MessageModel, QAfterFilterCondition>
+  mimeTypeIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'mimeType', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<MessageModel, MessageModel, QAfterFilterCondition>
+  mimeTypeIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'mimeType', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<MessageModel, MessageModel, QAfterFilterCondition>
   pointIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -559,6 +907,18 @@ extension MessageModelQuerySortBy
     });
   }
 
+  QueryBuilder<MessageModel, MessageModel, QAfterSortBy> sortByFilePath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'filePath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<MessageModel, MessageModel, QAfterSortBy> sortByFilePathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'filePath', Sort.desc);
+    });
+  }
+
   QueryBuilder<MessageModel, MessageModel, QAfterSortBy> sortByIsMine() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isMine', Sort.asc);
@@ -580,6 +940,18 @@ extension MessageModelQuerySortBy
   QueryBuilder<MessageModel, MessageModel, QAfterSortBy> sortByMessageDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'message', Sort.desc);
+    });
+  }
+
+  QueryBuilder<MessageModel, MessageModel, QAfterSortBy> sortByMimeType() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'mimeType', Sort.asc);
+    });
+  }
+
+  QueryBuilder<MessageModel, MessageModel, QAfterSortBy> sortByMimeTypeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'mimeType', Sort.desc);
     });
   }
 
@@ -607,6 +979,18 @@ extension MessageModelQuerySortThenBy
   QueryBuilder<MessageModel, MessageModel, QAfterSortBy> thenByDateDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'date', Sort.desc);
+    });
+  }
+
+  QueryBuilder<MessageModel, MessageModel, QAfterSortBy> thenByFilePath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'filePath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<MessageModel, MessageModel, QAfterSortBy> thenByFilePathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'filePath', Sort.desc);
     });
   }
 
@@ -646,6 +1030,18 @@ extension MessageModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<MessageModel, MessageModel, QAfterSortBy> thenByMimeType() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'mimeType', Sort.asc);
+    });
+  }
+
+  QueryBuilder<MessageModel, MessageModel, QAfterSortBy> thenByMimeTypeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'mimeType', Sort.desc);
+    });
+  }
+
   QueryBuilder<MessageModel, MessageModel, QAfterSortBy> thenByPoint() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'point', Sort.asc);
@@ -667,6 +1063,14 @@ extension MessageModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<MessageModel, MessageModel, QDistinct> distinctByFilePath({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'filePath', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<MessageModel, MessageModel, QDistinct> distinctByIsMine() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'isMine');
@@ -678,6 +1082,14 @@ extension MessageModelQueryWhereDistinct
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'message', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<MessageModel, MessageModel, QDistinct> distinctByMimeType({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'mimeType', caseSensitive: caseSensitive);
     });
   }
 
@@ -702,6 +1114,12 @@ extension MessageModelQueryProperty
     });
   }
 
+  QueryBuilder<MessageModel, String?, QQueryOperations> filePathProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'filePath');
+    });
+  }
+
   QueryBuilder<MessageModel, bool, QQueryOperations> isMineProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isMine');
@@ -711,6 +1129,12 @@ extension MessageModelQueryProperty
   QueryBuilder<MessageModel, String, QQueryOperations> messageProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'message');
+    });
+  }
+
+  QueryBuilder<MessageModel, String?, QQueryOperations> mimeTypeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'mimeType');
     });
   }
 

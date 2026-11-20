@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 
 import 'package:soul_chat/model/message_model.dart';
@@ -5,11 +7,12 @@ import 'package:soul_chat/model/message_model.dart';
 import 'package:firebase_ai/firebase_ai.dart';
 import 'package:get_it/get_it.dart';
 import 'package:isar_community/isar.dart';
+import 'package:mime/mime.dart';
 
 class ChatAiService {
   final Isar _isar = GetIt.I<Isar>();   // Isar 인스턴스 변수
 
-  Future<void> sendMessage(String prompt) async {
+  Future<void> sendMessage(String prompt, {File? file}) async {   // 선택적 파라미터 File? file
     int? currentModelMessageId;
     int? currentUserMessageId;
 
@@ -17,7 +20,12 @@ class ChatAiService {
       // 현재 데이터베이스에 저장되어 있는 내가 보낸 메시지 수 (포인트용)
       final myMessagesCount = await _isar.messageModels.filter().isMineEqualTo(true).count();
 
-      // 내가 보낸 메시지를 Isar에 저장
+      // 파일이 있다면 MIME 타입 추출 (image/png, application/pdf 등)
+      final String? mimeType = file != null
+        ? (lookupMimeType(file.path) ?? 'application/octet-stream')
+        : null;
+
+      // 내가 보낸 메시지(텍스트 + 파일 경로)를 Isar에 저장
       currentUserMessageId = await _isar.writeTxn(() async {
         return await _isar.messageModels.put(
           MessageModel(
@@ -25,6 +33,8 @@ class ChatAiService {
             isMine: true,
             message: prompt,
             point: myMessagesCount + 1,
+            filePath: file?.path,
+            mimeType: mimeType,
           ),
         );
       });
@@ -35,15 +45,36 @@ class ChatAiService {
       // 많은 대화 히스토리를 제공할 수록 비용 증가
       // 날짜 내림차순으로 내용이 비어있는 잘못된 메시지를 제외한 가장 최근 10개 메시지 변수에 저장 (최신순: 10 -> 9 -> ... -> 2 -> 1)
       // final contextMessages = await isar.messageModels.where().limit(10).findAll();
-      final contextMessages = await _isar.messageModels.filter().messageIsNotEmpty().sortByDateDesc().limit(10).findAll();
+      final contextMessages = await _isar.messageModels.where().sortByDateDesc().limit(10).findAll();
       
+      final List<Content> promptContext = [];
+
+      // 대화 문맥(Content) 구성 시 파일이 있는 메시지는 InlineDataPart 함께 포함
+      // 텍스트와 첨부파일을 모두 담아서 아래 generateContentStream(promptContext)로 전달
       // 제미나이가 대화 흐름을 이해할 수 있도록 시간순으로 뒤집어서 변환 (과거 -> 최신)
-      final List<Content> promptContext = contextMessages.reversed.map(
-        (e) => Content(
-          e.isMine ? 'user' : 'model',
-          [TextPart(e.message)],
-        ),
-      ).toList();
+      for (final e in contextMessages.reversed) {
+        final List<Part> parts = [];
+
+        // 첨부파일이 존재하고 실제 기기에 파일이 남아있다면 바이트 데이터 추가
+        if (e.filePath != null && e.mimeType != null) {
+          final savedFile = File(e.filePath!);
+
+          if (await savedFile.exists()) {
+            final bytes = await savedFile.readAsBytes();
+
+            parts.add(InlineDataPart(e.mimeType!, bytes));
+          }
+        }
+
+        // 텍스트가 있다면 TextPart 추가
+        if (e.message.isNotEmpty) {
+          parts.add(TextPart(e.message));
+        }
+
+        if (parts.isNotEmpty) {
+          promptContext.add(Content(e.isMine ? 'user' : 'model', parts));
+        }
+      }
       
       // 사용할 제미나이 모델 인스턴스 초기화 (Gemini Developer API 기준)
       final model = FirebaseAI.googleAI().generativeModel(
