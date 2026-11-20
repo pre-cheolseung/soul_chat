@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import 'package:soul_chat/components/point_notification.dart';
+import 'package:soul_chat/widget/full_screen_image_viewer.dart';
 
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';   // 마크다운 패키지
 
@@ -88,7 +89,7 @@ class Message extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // 첨부파일이 있는 경우 상단에 먼저 렌더링
-                  if (hasFile) _buildAttachment(filePath!, textColor),
+                  if (hasFile) _buildAttachment(context, filePath!, textColor),
 
                   // 파일과 텍스트가 둘 다 있을 때만 중간 여백 추가
                   if (hasFile && hasText) const SizedBox(height: 8.0),
@@ -199,7 +200,7 @@ class Message extends StatelessWidget {
   }
 
   // 첨부파일(이미지 vs PDF 등 문서) 렌더링 위젯
-  Widget _buildAttachment(String path, Color textColor) {
+  Widget _buildAttachment(BuildContext context, String path, Color textColor) {
     final file = File(path);
 
     // 원본 파일이 기기에서 삭제된 경우 안전하게 예외 처리
@@ -234,14 +235,30 @@ class Message extends StatelessWidget {
       );
     }
 
-    // 이미지인 경우: 둥근 모서리 이미지 출력
+    // 이미지인 경우: 둥근 모서리 이미지 출력 (탭하면 전체 화면 뷰어로 부드럽게 확장)
     if (_isImage()) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(12.0),
-        child: Image.file(
-          file,
-          width: 220.0,
-          fit: BoxFit.cover,
+      return GestureDetector(
+        onTap: () {
+          Navigator.of(context).push(
+            PageRouteBuilder(
+              opaque: false,
+              pageBuilder: (_, __, ___) => FullScreenImageViewer(
+                imageFile: file,
+                heroTag: path,   // 파일 경로를 고유 태그로 사용
+              ),
+            ),
+          );
+        },
+        child: Hero(
+          tag: path,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12.0),
+            child: Image.file(
+              file,
+              width: 220.0,
+              fit: BoxFit.cover,
+            ),
+          ),
         ),
       );
     }
