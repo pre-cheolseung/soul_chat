@@ -52,6 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final _chatAiService = ChatAiService();   // 제미나이 AI 호출 로직 클래스
   bool showScrollToBottom = false;   // 맨 아래로 내리기 버튼 표시 여부 상태 변수
   bool isRunning = false;   // 로딩 여부를 확인하는 변수
+  bool _isInitialLoad = true;   // 첫 화면 로딩 여부를 체크하는 변수
   String? error;   // 에러 메시지 변수
   File? selectedFile;   // 파일 선택 변수
 
@@ -145,22 +146,42 @@ class _HomeScreenState extends State<HomeScreen> {
               Expanded(
                 child: Stack(
                   children: [
-                    // 분리된 채팅 목록 위젯
-                    StreamBuilder<List<MessageModel>>(
-                      stream: _messageStream,   // 매번 새로 생성하지 않고 미리 만들어둔 변수 연결
-                      builder: (context, snapshot) {
-                        final messages = snapshot.data ?? [];
-                        // ListView의 가장 아래로 이동하는 함수
-                        // '맨 아래에 있을 때(버튼이 안 보일 때)'만 새 메시지에 맞춰 따라 하강
-                        if (!showScrollToBottom) {
-                          WidgetsBinding.instance.addPostFrameCallback((_) => scrollToBottom());
-                        }
-                        // 화면에 로고와 메시지들을 보여주는 ListView 함수
-                        return MessageListView(
-                          scrollController: scrollController,
-                          messages: messages,
-                        );
+                    NotificationListener<ScrollMetricsNotification>(
+                      onNotification: (notification) {
+                        _scrollListener();   // 이미지나 마크다운 로딩으로 리스트 높이가 바뀔 때도 버튼 상태 재계산
+                        return false;
                       },
+                      // 분리된 채팅 목록 위젯
+                      child: StreamBuilder<List<MessageModel>>(
+                        stream: _messageStream,   // 매번 새로 생성하지 않고 미리 만들어둔 변수 연결
+                        builder: (context, snapshot) {
+                          final messages = snapshot.data ?? [];
+
+                          if (messages.isNotEmpty) {
+                            if (_isInitialLoad) {
+                              // 앱 시작 후 첫 진입 시 렌더링이 끝난 뒤 맨 아래로 즉시 이동
+                              _isInitialLoad = false;
+                              // ListView의 가장 아래로 이동하는 함수
+                              WidgetsBinding.instance.addPostFrameCallback((_) async {
+                                await Future.delayed(const Duration(milliseconds: 100));
+                                if (scrollController.hasClients) {
+                                  scrollController.jumpTo(scrollController.position.maxScrollExtent);
+                                }
+                              });
+                            // 제일 아래에 있을 때(버튼이 안 보일 때)만 새 메시지에 맞춰 따라 하강
+                            } else if (!showScrollToBottom) {
+                              // 평소 대화 중 새 메시지가 올 때 부드럽게 스크롤 하강
+                              WidgetsBinding.instance.addPostFrameCallback((_) => scrollToBottom());
+                            }
+                          }
+
+                          // 화면에 로고와 메시지들을 보여주는 ListView 함수
+                          return MessageListView(
+                            scrollController: scrollController,
+                            messages: messages,
+                          );
+                        },
+                      ),
                     ),
                     // 오른쪽 상단 대화 초기화 버튼 (배경 없이 깔끔하게 배치)
                     Positioned(
@@ -230,17 +251,25 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ListView 의 가장 아래로 이동하는 함수
-  void scrollToBottom() {
+  Future<void> scrollToBottom() async {
     if (!scrollController.hasClients) return;
-    
+
+    final maxScroll = scrollController.position.maxScrollExtent;   // 최대 스크롤 가능한 위치를 pixel로 제공
+
     // 현재 위치가 최대 스크롤 가능 위치가 아닐 때만 실행
-    if (scrollController.position.pixels != scrollController.position.maxScrollExtent) {
+    if (scrollController.position.pixels != maxScroll) {
       // 원하는 위치까지 스크롤을 가능하도록 하는 함수
-      scrollController.animateTo(
-        scrollController.position.maxScrollExtent,   // 최대 스크롤 가능한 위치를 pixel로 제공
+      await scrollController.animateTo(
+        maxScroll,
         duration: const Duration(milliseconds: 300),   // 약 300ms에 걸쳐서 스크롤 애니메이션을 실행
         curve: Curves.easeOut,   // 애니메이션이 끝날수록 느려지는 유형으로 실행
       );
+
+      // 애니메이션 도중 이미지, 마크다운 렌더링 등으로 바닥 높이가 더 늘어났다면 한 번 더 보정
+      if (scrollController.hasClients && scrollController.position.pixels < 
+        scrollController.position.maxScrollExtent) {
+        scrollController.jumpTo(scrollController.position.maxScrollExtent);
+      }
     }
   }
 

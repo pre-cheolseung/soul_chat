@@ -29,7 +29,7 @@ class ScrollToBottomButton extends StatelessWidget {
           curve: Curves.easeInOut,
           child: Center(
             child: Material(
-              color: Colors.black87,   // 버튼 배경색
+              color: const Color(0xFF4A3B8C),   // 버튼 배경색
               elevation: 4.0,   // 그림자 깊이 (0으로 하면 그림자 제거)
               borderRadius: BorderRadius.circular(20.0),
               child: InkWell(
@@ -38,7 +38,7 @@ class ScrollToBottomButton extends StatelessWidget {
                 child: const Padding(
                   padding: EdgeInsets.symmetric(
                     horizontal: 14.0,
-                    vertical: 8.0
+                    vertical: 8.0,
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,

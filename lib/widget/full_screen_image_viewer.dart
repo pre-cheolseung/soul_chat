@@ -24,7 +24,7 @@ class FullScreenImageViewer extends StatelessWidget {
           icon: const Icon(
             Icons.close_rounded,
             color: Colors.white,
-            size: 28.0
+            size: 28.0,
           ),
           onPressed: () => Navigator.of(context).pop(),
         ),

@@ -28,12 +28,12 @@ class MessageListView extends StatelessWidget {
     return ListView.separated(
       controller: scrollController,   // 선언한 컨트롤러를 ListView에 입력
       itemBuilder: (context, index) => index == 0
-          ? _buildLogo()
-          : _buildMessageItem(
-              message: messages[index - 1],
-              prevMessage: index > 1 ? messages[index - 2] : null,
-              index: index - 1,
-            ),
+        ? _buildLogo()
+        : _buildMessageItem(
+            message: messages[index - 1],
+            prevMessage: index > 1 ? messages[index - 2] : null,
+            index: index - 1,
+          ),
       itemCount: messages.length + 1,
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,   // 스크롤 시 키보드 숨김
       separatorBuilder: (_, __) => const SizedBox(height: 16.0),
@@ -46,7 +46,7 @@ class MessageListView extends StatelessWidget {
       padding: EdgeInsets.only(
         left: 16.0,
         right: 16.0,
-        bottom: 60.0
+        bottom: 60.0,
       ),
       child: Logo(),
     );

@@ -45,6 +45,7 @@ dependencies:
   isar_community: 3.4.1
   isar_community_flutter_libs: 3.4.1
   mime: ^2.1.0
+  open_filex: ^5.0.0
   path_provider: ^2.1.6
 
 
