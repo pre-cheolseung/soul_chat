@@ -73,24 +73,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // 키보드가 올라와 있는 상태거나 화면 크기가 변하는 중에는 버튼 깜빡임 방지
     if (isKeyboardOpen) {
+      // if (showScrollToBottom) setState(() => showScrollToBottom = false);
       if (showScrollToBottom) {
         setState(() => showScrollToBottom = false);
       }
       return;
     }
 
-    final maxScroll = scrollController.position.maxScrollExtent;
-    final currentScroll = scrollController.position.pixels;
-    final shouldShow = (maxScroll - currentScroll) > 200;   // 맨 아래(maxScroll)에서 위로 200px 이상 올라갔을 때만 버튼 표시
+    // Class MessageListView 32행의 reverse: true에서는 최하단이 0.0
+    final shouldShow = scrollController.position.pixels > 200;   // 위로 200px 이상 올라갔을 때만 버튼 표시
 
     // 상태가 실제로 바뀔 때만 setState 호출 (스크롤 중 불필요한 화면 재빌드 방지)
     if (showScrollToBottom != shouldShow) {
       // 상태 변경 시 setState() 함수 실행
       // 값 변경 시 build() 함수 재실행
       // Clean -> setState() -> Dirty -> build() -> Clean
-      setState(() {
-        showScrollToBottom = shouldShow;
-      });
+      setState(() => showScrollToBottom = shouldShow);
     }
   }
 
@@ -157,25 +155,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         builder: (context, snapshot) {
                           final messages = snapshot.data ?? [];
 
-                          if (messages.isNotEmpty) {
-                            if (_isInitialLoad) {
-                              // 앱 시작 후 첫 진입 시 렌더링이 끝난 뒤 맨 아래로 즉시 이동
-                              _isInitialLoad = false;
-                              // ListView의 가장 아래로 이동하는 함수
-                              WidgetsBinding.instance.addPostFrameCallback((_) async {
-                                await Future.delayed(const Duration(milliseconds: 100));
-                                if (scrollController.hasClients) {
-                                  scrollController.jumpTo(scrollController.position.maxScrollExtent);
-                                }
-                              });
-                            // 제일 아래에 있을 때(버튼이 안 보일 때)만 새 메시지에 맞춰 따라 하강
-                            } else if (!showScrollToBottom) {
-                              // 평소 대화 중 새 메시지가 올 때 부드럽게 스크롤 하강
-                              WidgetsBinding.instance.addPostFrameCallback((_) => scrollToBottom());
-                            }
-                          }
-
                           // 화면에 로고와 메시지들을 보여주는 ListView 함수
+                          // 앱 첫 실행이어도 이미지가 많아도 무조건 최하단(0.0)부터 그려지므로 스크롤 보정 코드 불필요
                           return MessageListView(
                             scrollController: scrollController,
                             messages: messages,
@@ -254,22 +235,13 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> scrollToBottom() async {
     if (!scrollController.hasClients) return;
 
-    final maxScroll = scrollController.position.maxScrollExtent;   // 최대 스크롤 가능한 위치를 pixel로 제공
-
-    // 현재 위치가 최대 스크롤 가능 위치가 아닐 때만 실행
-    if (scrollController.position.pixels != maxScroll) {
-      // 원하는 위치까지 스크롤을 가능하도록 하는 함수
-      await scrollController.animateTo(
-        maxScroll,
-        duration: const Duration(milliseconds: 300),   // 약 300ms에 걸쳐서 스크롤 애니메이션을 실행
-        curve: Curves.easeOut,   // 애니메이션이 끝날수록 느려지는 유형으로 실행
+    // Class MessageListView 32행의 reverse: true 기준 최하단(0.0)으로 이동
+    if (scrollController.position.pixels != 0.0) {
+      scrollController.animateTo(
+        0.0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
       );
-
-      // 애니메이션 도중 이미지, 마크다운 렌더링 등으로 바닥 높이가 더 늘어났다면 한 번 더 보정
-      if (scrollController.hasClients && scrollController.position.pixels < 
-        scrollController.position.maxScrollExtent) {
-        scrollController.jumpTo(scrollController.position.maxScrollExtent);
-      }
     }
   }
 

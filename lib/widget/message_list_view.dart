@@ -25,15 +25,30 @@ class MessageListView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final reversedMessages = messages.reversed.toList();   // 최신 메시지가 0번(맨 아래)에 오도록 역순 변환
+
     return ListView.separated(
       controller: scrollController,   // 선언한 컨트롤러를 ListView에 입력
-      itemBuilder: (context, index) => index == 0
-        ? _buildLogo()
-        : _buildMessageItem(
-            message: messages[index - 1],
-            prevMessage: index > 1 ? messages[index - 2] : null,
-            index: index - 1,
-          ),
+      reverse: true,   // 최하단(0.0)을 기준점으로 고정
+      itemBuilder: (context, index) {
+        // 가장 마지막 인덱스(화면 맨 위)에 로고 배치
+        if (index == reversedMessages.length) {
+          return _buildLogo();
+        }
+
+        // 시간순 직전 메시지는 역순 리스트에서 'index + 1' 위치
+        final currentMessage = reversedMessages[index];
+        final prevMessage = (index + 1 < reversedMessages.length)
+            ? reversedMessages[index + 1]
+            : null;
+        final originalIndex = reversedMessages.length - 1 - index;
+
+        return _buildMessageItem(
+          message: currentMessage,
+          prevMessage: prevMessage,
+          index: originalIndex,
+        );
+      },
       itemCount: messages.length + 1,
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,   // 스크롤 시 키보드 숨김
       separatorBuilder: (_, __) => const SizedBox(height: 16.0),
