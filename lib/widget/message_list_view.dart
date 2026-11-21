@@ -4,6 +4,7 @@ import 'package:soul_chat/components/date_divider.dart';
 import 'package:soul_chat/components/logo.dart';
 import 'package:soul_chat/components/message.dart';
 import 'package:soul_chat/model/message_model.dart';
+import 'package:soul_chat/widget/typing_indicator.dart';
 
 import 'package:intl/intl.dart';   // DateFormat 사용
 
@@ -16,21 +17,38 @@ import 'package:intl/intl.dart';   // DateFormat 사용
 class MessageListView extends StatelessWidget {
   final ScrollController scrollController;
   final List<MessageModel> messages;
+  final bool isLoading;   // 현재 응답 대기 중 여부
 
   const MessageListView({
     super.key,
+
     required this.scrollController,
     required this.messages,
+    this.isLoading = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final reversedMessages = messages.reversed.toList();   // 최신 메시지가 0번(맨 아래)에 오도록 역순 변환
+    // isLoading이 true이고, (마지막 메시지가 내 메시지이거나 AI 메시지가 아직 비어있을 때) 표시
+    final showTyping =
+      isLoading && reversedMessages.isNotEmpty &&
+      (reversedMessages.first.isMine || reversedMessages.first.message.trim().isEmpty);
 
     return ListView.separated(
       controller: scrollController,   // 선언한 컨트롤러를 ListView에 입력
       reverse: true,   // 최하단(0.0)을 기준점으로 고정
       itemBuilder: (context, index) {
+        // 가장 아래(index 0)에 타이핑 애니메이션 배치
+        if (showTyping && index == 0) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0),
+            child: TypingIndicator(),
+          );
+        }
+
+        final msgIndex = showTyping ? index - 1 : index;   // 타이핑 버블이 있으면 실제 메시지 인덱스를 1칸씩 뒤로 보정
+
         // 가장 마지막 인덱스(화면 맨 위)에 로고 배치
         if (index == reversedMessages.length) {
           return _buildLogo();
@@ -39,8 +57,8 @@ class MessageListView extends StatelessWidget {
         // 시간순 직전 메시지는 역순 리스트에서 'index + 1' 위치
         final currentMessage = reversedMessages[index];
         final prevMessage = (index + 1 < reversedMessages.length)
-            ? reversedMessages[index + 1]
-            : null;
+          ? reversedMessages[index + 1]
+          : null;
         final originalIndex = reversedMessages.length - 1 - index;
 
         return _buildMessageItem(
@@ -49,7 +67,7 @@ class MessageListView extends StatelessWidget {
           index: originalIndex,
         );
       },
-      itemCount: messages.length + 1,
+      itemCount: reversedMessages.length + 1 + (showTyping ? 1 : 0),   // 타이핑 버블이 보일 때는 전체 개수 + 1
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,   // 스크롤 시 키보드 숨김
       separatorBuilder: (_, __) => const SizedBox(height: 16.0),
     );
@@ -73,6 +91,12 @@ class MessageListView extends StatelessWidget {
     required MessageModel message,
     required int index,
   }) {
+    // AI 메시지가 아직 한 글자도 도착하지 않은 빈 상태라면 말풍선을 그리지 않음 (TypingIndicator가 대신 보임)
+    if (!message.isMine && message.message.trim().isEmpty && 
+      (message.filePath == null || message.filePath!.isEmpty)) {
+      return const SizedBox.shrink();
+    }
+    
     final isMine = message.isMine;
     // DateDivider 위젯을 그려야 하는지 판단
     final shouldDrawDateDivider = prevMessage == null || _shouldDrawDate(prevMessage.date, message.date);

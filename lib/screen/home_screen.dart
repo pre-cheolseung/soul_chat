@@ -160,6 +160,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           return MessageListView(
                             scrollController: scrollController,
                             messages: messages,
+                            isLoading: isRunning,
                           );
                         },
                       ),
