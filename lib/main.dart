@@ -7,6 +7,7 @@ import 'package:soul_chat/screen/home_screen.dart';
 
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get_it/get_it.dart';
 import 'package:isar_community/isar.dart';
 import 'package:path_provider/path_provider.dart';
@@ -56,6 +57,18 @@ void main() async {
   runApp(
     MaterialApp(
       debugShowCheckedModeBanner: false,   // 우측 상단 DEBUG 빨간색 배너 삭제
+      // 기본 언어 델리게이트 등록 (Material, Widgets, Cupertino 모두 한국어화)
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      // 지원할 언어 목록에 한국어('ko') 추가
+      supportedLocales: const [
+        Locale('en', 'US'),
+        Locale('ko', 'KR'),
+      ],
+      // locale: const Locale('ko', 'KR'),   // 기기 언어 설정과 무관하게 무조건 한국어로 고정하고 싶을 경우 추가
       home: HomeScreen(),
     ),
   );
