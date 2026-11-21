@@ -7,6 +7,7 @@ import 'package:soul_chat/components/point_notification.dart';
 import 'package:soul_chat/widget/full_screen_image_viewer.dart';
 
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';   // 마크다운 패키지
+import 'package:intl/intl.dart';   // DateFormat 사용
 import 'package:markdown/markdown.dart' as md;
 import 'package:open_filex/open_filex.dart';   // 기본 뷰어 앱 연결 패키지
 
@@ -16,6 +17,7 @@ class Message extends StatefulWidget {
   final int? point;
   final String? filePath;   // 첨부파일 경로
   final String? mimeType;   // 첨부파일 MIME 타입
+  final DateTime date;   // 메시지 전송 시간
 
 
   const Message({
@@ -26,6 +28,7 @@ class Message extends StatefulWidget {
     this.point,
     this.filePath,
     this.mimeType,
+    required this.date,
   });
 
   @override
@@ -74,6 +77,15 @@ class _MessageState extends State<Message> {
     if (mounted) {
       setState(() => _isCopied = false);
     }
+  }
+
+  // DateTime을 '10:28 PM' 형식으로 변환
+  String _formatTime(DateTime dt) {
+    final period = dt.hour < 12 ? 'AM' : 'PM';
+    final hour12 = dt.hour == 0 ? 12 : (dt.hour > 12 ? dt.hour - 12 : dt.hour);
+    final minute = dt.minute.toString().padLeft(2, '0');
+    
+    return '$hour12:$minute $period';
   }
 
   @override
@@ -347,38 +359,63 @@ class _MessageState extends State<Message> {
                         ? MainAxisAlignment.start
                         : MainAxisAlignment.end,
                       children: [
-                        // 내 메시지일 때 포인트만 우측 표시
-                        if (!widget.alignLeft && widget.point != null)
-                          PointNotification(point: widget.point!),
-
-                        // AI 답변일 때만 하단 좌측에 복사 버튼 표시
-                        if (hasText && widget.alignLeft)
-                          InkWell(
-                            onTap: _copyAllText,
-                            borderRadius: BorderRadius.circular(12.0),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 3.0),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    _isCopied ? Icons.check_rounded : Icons.copy_rounded,
-                                    size: 14.0,
-                                    color: _isCopied ? const Color(0xFF7C5DFA) : Colors.black38,
-                                  ),
-                                  const SizedBox(width: 3.0),
-                                  Text(
-                                    _isCopied ? 'Copied' : 'Copy',
-                                    style: TextStyle(
-                                      fontSize: 11.5,
-                                      color: _isCopied ? const Color(0xFF7C5DFA) : Colors.black38,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                        // 내 메시지일 때 우측 하단에 포인트, 시간 순서
+                        if (!widget.alignLeft) ...[
+                          if (widget.point != null) ...[
+                            PointNotification(point: widget.point!),
+                            const SizedBox(width: 6.0),
+                          ],
+                          Text(
+                            _formatTime(widget.date),
+                            style: const TextStyle(
+                              fontSize: 11.0,
+                              color: Colors.black38,
                             ),
                           ),
+                        ],
+
+                        // AI 답변일 때 좌측 하단에 복사 버튼, 시간 순서
+                        if (widget.alignLeft) ...[
+                          if (hasText) ...[
+                            InkWell(
+                              onTap: _copyAllText,
+                              borderRadius: BorderRadius.circular(12.0),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 2.0,
+                                  horizontal: 4.0,
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      _isCopied ? Icons.check_rounded : Icons.copy_rounded,
+                                      size: 13.5,
+                                      color: _isCopied ? const Color(0xFF7C5DFA) : Colors.black38,
+                                    ),
+                                    const SizedBox(width: 3.0),
+                                    Text(
+                                      _isCopied ? 'Copied' : 'Copy',
+                                      style: TextStyle(
+                                        fontSize: 11.5,
+                                        color: _isCopied ? const Color(0xFF7C5DFA) : Colors.black38,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6.0),
+                          ],
+                          Text(
+                            _formatTime(widget.date),
+                            style: const TextStyle(
+                              fontSize: 11.0,
+                              color: Colors.black38,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),

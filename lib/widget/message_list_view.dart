@@ -97,6 +97,7 @@ class MessageListView extends StatelessWidget {
             point: message.point,
             filePath: message.filePath,
             mimeType: message.mimeType,
+            date: message.date,
           ),
         ),
       ],

@@ -12,7 +12,7 @@ class PointNotification extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      '$point point has been credited!',
+      '$point credited!',
       style: TextStyle(
         color: Colors.blueAccent,
         fontStyle: FontStyle.italic,
