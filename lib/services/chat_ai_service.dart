@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
-import 'package:soul_chat/model/message_model.dart';
+import 'package:soul_chat/models/message_model.dart';
 
 import 'package:firebase_ai/firebase_ai.dart';
 import 'package:get_it/get_it.dart';

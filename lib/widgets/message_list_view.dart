@@ -1,18 +1,11 @@
 import 'package:flutter/material.dart';
 
-import 'package:soul_chat/components/date_divider.dart';
-import 'package:soul_chat/components/logo.dart';
-import 'package:soul_chat/components/message.dart';
-import 'package:soul_chat/model/message_model.dart';
-import 'package:soul_chat/widget/typing_indicator.dart';
-
-import 'package:intl/intl.dart';   // DateFormat 사용
-
-// DateTime now = DateTime.now();
-// final monthLong = DateFormat('MMMM', 'en_US').format(now);   // 월을 영어 전체 이름으로 표시 (예: November)
-// String monthShort = DateFormat('MMM', 'en_US').format(now);   // 월을 영어 약자로 표시 (예: Nov)
-// String monthLong = DateFormat('MMMM', 'en_US').format(now);   // 월을 영어 전체 이름으로 표시 (예: November)
-// String fullDate = DateFormat.yMMMd('en_US').format(now);   // 연, 월, 일을 영어 형식으로 표시 (예: Nov 17, 2026)
+import 'package:soul_chat/models/message_model.dart';
+import 'package:soul_chat/utils/date_formatter.dart';
+import 'package:soul_chat/widgets/date_divider.dart';
+import 'package:soul_chat/widgets/logo.dart';
+import 'package:soul_chat/widgets/message.dart';
+import 'package:soul_chat/widgets/typing_indicator.dart';
 
 class MessageListView extends StatelessWidget {
   final ScrollController scrollController;
@@ -50,16 +43,16 @@ class MessageListView extends StatelessWidget {
         final msgIndex = showTyping ? index - 1 : index;   // 타이핑 버블이 있으면 실제 메시지 인덱스를 1칸씩 뒤로 보정
 
         // 가장 마지막 인덱스(화면 맨 위)에 로고 배치
-        if (index == reversedMessages.length) {
+        if (msgIndex == reversedMessages.length) {
           return _buildLogo();
         }
 
         // 시간순 직전 메시지는 역순 리스트에서 'index + 1' 위치
-        final currentMessage = reversedMessages[index];
-        final prevMessage = (index + 1 < reversedMessages.length)
-          ? reversedMessages[index + 1]
+        final currentMessage = reversedMessages[msgIndex];
+        final prevMessage = (msgIndex + 1 < reversedMessages.length)
+          ? reversedMessages[msgIndex + 1]
           : null;
-        final originalIndex = reversedMessages.length - 1 - index;
+        final originalIndex = reversedMessages.length - 1 - msgIndex;
 
         return _buildMessageItem(
           message: currentMessage,
@@ -96,10 +89,10 @@ class MessageListView extends StatelessWidget {
       (message.filePath == null || message.filePath!.isEmpty)) {
       return const SizedBox.shrink();
     }
-    
+
     final isMine = message.isMine;
     // DateDivider 위젯을 그려야 하는지 판단
-    final shouldDrawDateDivider = prevMessage == null || _shouldDrawDate(prevMessage.date, message.date);
+    final shouldDrawDateDivider = prevMessage == null || DateFormatter.isDifferentDay(prevMessage.date, message.date);
 
     return Column(
       children: [
@@ -126,16 +119,5 @@ class MessageListView extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  // String으로 반환된 날짜가 다를 경우 true 반환
-  bool _shouldDrawDate(DateTime date1, DateTime date2) {
-    return _getStringDate(date1) != _getStringDate(date2);
-  }
-
-  String _getStringDate(DateTime date) {
-    // return '${date.year}년 ${date.month}월 ${date.day}일';   // DateTime을 '2026년 11월 17일' 형태로 반환
-    // return '$monthLong ${now.day}, ${now.year}';   // DateTime을 'November 17, 2026' 형태로 반환
-    return DateFormat('MMMM d, y', 'en_US').format(date);   // DateTime을 'November 17, 2026' 형태로 반환
   }
 }

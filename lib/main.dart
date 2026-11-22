@@ -2,8 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'package:soul_chat/model/message_model.dart';
-import 'package:soul_chat/screen/home_screen.dart';
+import 'package:soul_chat/models/message_model.dart';
+import 'package:soul_chat/screens/home_screen.dart';
 
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';

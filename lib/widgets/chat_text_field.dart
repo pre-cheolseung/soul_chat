@@ -254,9 +254,9 @@ class ChatTextField extends StatelessWidget {
         children: [
           Container(
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F6F8),
+              color: Colors.white,
               borderRadius: BorderRadius.circular(12.0),
-              border: Border.all(color: Colors.grey.shade300),
+              border: Border.all(color: const Color(0xFFD6CCFF)),
             ),
             child: isImage
               // 이미지인 경우 64x64 썸네일 출력
@@ -279,9 +279,9 @@ class ChatTextField extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(
-                        Icons.description_outlined,
-                        size: 18.0,
-                        color: Colors.black54,
+                        Icons.description_rounded,
+                        size: 16.0,
+                        color: Color(0xFF7C5DFA),
                       ),
                       const SizedBox(width: 6.0),
                       ConstrainedBox(
@@ -292,7 +292,7 @@ class ChatTextField extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             fontSize: 13.0,
-                            color: Colors.black87,
+                            color: Color(0xFF2D2254),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -310,7 +310,7 @@ class ChatTextField extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(3.0),
                 decoration: BoxDecoration(
-                  color: Colors.black87,
+                  color: const Color(0xFF4A3B8C),
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: Colors.white,
@@ -318,7 +318,7 @@ class ChatTextField extends StatelessWidget {
                   ),
                 ),
                 child: const Icon(
-                  Icons.close,
+                  Icons.close_rounded,
                   size: 11.0,
                   color: Colors.white,
                 ),

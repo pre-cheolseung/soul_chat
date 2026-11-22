@@ -24,10 +24,11 @@ class Logo extends StatelessWidget {
         SizedBox(height: 32.0),
         // 앱 설명 텍스트
         Text(
-          'Hi! I am your friend, SoulChat!\nTalk with me to build closeness!',
+          'Hi! I am your friend, SoulChat!\n'
+          'Talk with me to build closeness!',
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: Colors.black,
+            color: Color(0xFF4C436E),
             fontSize: 16,
             fontStyle: FontStyle.italic,
             fontWeight: FontWeight.w500,

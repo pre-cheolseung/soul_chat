@@ -3,13 +3,15 @@ import 'dart:ui';   // ImageFilter.blur 사용
 
 import 'package:flutter/material.dart';
 
-import 'package:soul_chat/components/chat_text_field.dart';
-import 'package:soul_chat/model/message_model.dart';
-import 'package:soul_chat/service/chat_ai_service.dart';
-import 'package:soul_chat/widget/message_list_view.dart';
-import 'package:soul_chat/widget/scroll_to_bottom_button.dart';
+import 'package:soul_chat/widgets/chat_text_field.dart';
+import 'package:soul_chat/models/message_model.dart';
+import 'package:soul_chat/services/chat_ai_service.dart';
+import 'package:soul_chat/services/file_picker_service.dart';
+import 'package:soul_chat/utils/app_snack_bar.dart';
+import 'package:soul_chat/widgets/clear_chat_dialog.dart';
+import 'package:soul_chat/widgets/message_list_view.dart';
+import 'package:soul_chat/widgets/scroll_to_bottom_button.dart';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:get_it/get_it.dart';
 import 'package:isar_community/isar.dart';
 
@@ -50,9 +52,9 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController controller = TextEditingController();
   final ScrollController scrollController = ScrollController();
   final _chatAiService = ChatAiService();   // 제미나이 AI 호출 로직 클래스
+  final FilePickerService _filePickerService = FilePickerService();   // 파일 선택 클래스
   bool showScrollToBottom = false;   // 맨 아래로 내리기 버튼 표시 여부 상태 변수
   bool isRunning = false;   // 로딩 여부를 확인하는 변수
-  bool _isInitialLoad = true;   // 첫 화면 로딩 여부를 체크하는 변수
   String? error;   // 에러 메시지 변수
   File? selectedFile;   // 파일 선택 변수
 
@@ -292,22 +294,8 @@ class _HomeScreenState extends State<HomeScreen> {
       );
 
       if (mounted) {
-      // 에러가 있을 경우 SnackBar로 에러 메시지 표시
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: Colors.redAccent,
-            content: Text(e.toString()),
-            behavior: SnackBarBehavior.floating,   // 화면 위에 떠 있는 스타일
-            // 확인 버튼
-            action: SnackBarAction(
-              label: 'Confirm',
-              textColor: Colors.white,
-              onPressed: () {
-                ScaffoldMessenger.of(context).hideCurrentSnackBar();
-              },
-            ),
-          ),
-        );
+        // 에러가 있을 경우 SnackBar로 에러 메시지 표시
+        AppSnackBar.showError(context, e.toString());
       }
       debugPrint('Error : $e');
     } finally {
@@ -327,56 +315,42 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _handleClearChat() async {
     if (isRunning) return;   // AI가 응답을 생성하는 중에는 삭제 방지
 
-    final shouldDelete = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Clear Chat History'),
-        content: const Text(
-          'All conversation history will be deleted and cannot be recovered.'
-          '\nAre you sure you want to DELETE it?'
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('CANCEL'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('DELETE'),
-          ),
-        ],
-      ),
-    );
+    final shouldDelete = await ClearChatDialog.show(context);
 
-    if (shouldDelete == true) {
-      await _chatAiService.clearAllMessages();
+    if (!shouldDelete) return;
 
-      if (mounted) {
-        setState(() {
+    await _chatAiService.clearAllMessages();
+
+    if (mounted) {
+      // setState(() => showScrollToBottom = false);   // 하단 이동 버튼 상태 초기화
+      setState(() {
           showScrollToBottom = false;   // 하단 이동 버튼 상태 초기화
         });
-      }
     }
   }
 
   // 파일 선택 함수
   Future<void> _pickFile() async {
-  final pickedFile = await FilePicker.pickFile(
-    type: FileType.custom,
-    allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'pdf', 'txt'],
-  );
+    final file = await _filePickerService.pickAttachment();
 
-  if (pickedFile != null && pickedFile.path != null) {
-    setState(() {
-      selectedFile = File(pickedFile.path!);
-      error = null;
-    });
+    if (file != null) {
+      // 상태 변경 시 setState() 함수 실행
+      // 값 변경 시 build() 함수 재실행
+      // Clean -> setState() -> Dirty -> build() -> Clean
+      setState(() {
+        selectedFile = file;
+        error = null;
+      });
+    }
   }
-}
+
 
   // 선택된 파일 제거 함수
   void _removeFile() {
+    // 상태 변경 시 setState() 함수 실행
+    // 값 변경 시 build() 함수 재실행
+    // Clean -> setState() -> Dirty -> build() -> Clean
+    // setState(() => selectedFile = null);
     setState(() {
       selectedFile = null;
     });

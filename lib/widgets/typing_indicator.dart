@@ -35,7 +35,10 @@ class _TypingIndicatorState extends State<TypingIndicator> with SingleTickerProv
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 16.0,
+          vertical: 14.0,
+        ),
         decoration: BoxDecoration(
           color: const Color(0xFFF6F5FA),   // AI 말풍선과 동일한 배경색
           borderRadius: const BorderRadius.only(
