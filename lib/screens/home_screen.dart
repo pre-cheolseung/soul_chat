@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:ui';   // ImageFilter.blur 사용
 
 import 'package:flutter/material.dart';
 
@@ -8,7 +7,7 @@ import 'package:soul_chat/models/message_model.dart';
 import 'package:soul_chat/services/chat_ai_service.dart';
 import 'package:soul_chat/services/file_picker_service.dart';
 import 'package:soul_chat/utils/app_snack_bar.dart';
-import 'package:soul_chat/widgets/clear_chat_dialog.dart';
+import 'package:soul_chat/utils/app_dialog.dart';
 import 'package:soul_chat/widgets/message_list_view.dart';
 import 'package:soul_chat/widgets/scroll_to_bottom_button.dart';
 
@@ -300,12 +299,15 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _handleClearChat() async {
     if (isRunning) return;   // AI가 응답을 생성하는 중에는 삭제 방지
 
-    final shouldDelete = await ClearChatDialog.show(context);
-
+    final shouldDelete = await AppDialog.showDanger(
+      context,
+      title: 'Clear Chat History',
+      content: 'All conversation history will be deleted and cannot be recovered.\n'
+              'Are you sure you want to delete it?',
+    );
     if (!shouldDelete) return;
 
     await _chatAiService.clearAllMessages();
-
     if (mounted) {
       // 상태 변경 시 setState() 함수 실행
       // 값 변경 시 build() 함수 재실행
