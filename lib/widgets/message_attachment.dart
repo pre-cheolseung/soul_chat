@@ -113,7 +113,7 @@ class MessageAttachment extends StatelessWidget {
 
         // 기기에 해당 파일을 열 수 있는 앱이 없는 경우 안내 스낵바 표시
         if (result.type != ResultType.done && context.mounted) {
-          AppSnackBar.showError(context, 'Cannot open file : ${result.message}');
+          AppSnackBar.showError(context, 'Cannot open file : ${result.message}');   // 파일 열기 실패 에러 알림
         }
       },
       child: Container(

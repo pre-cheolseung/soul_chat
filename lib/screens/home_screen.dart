@@ -15,24 +15,6 @@ import 'package:soul_chat/widgets/scroll_to_bottom_button.dart';
 import 'package:get_it/get_it.dart';
 import 'package:isar_community/isar.dart';
 
-// 샘플 데이터
-// final sampleData = [
-//   MessageModel(
-//     date: DateTime(2026, 11, 17),
-//     id: 1,
-//     isMine: true,
-//     message: '오늘 저녁으로 먹을 만한 메뉴 추천해줘!',
-//     point: 1,
-//   ),
-//   MessageModel(
-//     date: DateTime(2026, 11, 17),
-//     id: 2,
-//     isMine: false,
-//     message: '칼칼한 김치찜은 어때요?!',
-//     point: null,
-//   ),
-// ];
-
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);   // const 생성자 : 최초 선언 후 변경 불가능한 빌드 타임 함수
 
@@ -75,10 +57,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // 키보드가 올라와 있는 상태거나 화면 크기가 변하는 중에는 버튼 깜빡임 방지
     if (isKeyboardOpen) {
-      // if (showScrollToBottom) setState(() => showScrollToBottom = false);
-      if (showScrollToBottom) {
-        setState(() => showScrollToBottom = false);
-      }
+      // 상태 변경 시 setState() 함수 실행
+      // 값 변경 시 build() 함수 재실행
+      // Clean -> setState() -> Dirty -> build() -> Clean
+      if (showScrollToBottom) setState(() => showScrollToBottom = false);
       return;
     }
 
@@ -285,17 +267,20 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       // UI 복구 및 SnackBar 처리는 화면이 담당
       // 에러 발생 시 사용자가 다시 입력하지 않도록 TextField에 원래 입력했던 텍스트와 첨부파일 모두 복원 및 커서 맨 끝 이동
+      // 상태 변경 시 setState() 함수 실행
+      // 값 변경 시 build() 함수 재실행
+      // Clean -> setState() -> Dirty -> build() -> Clean
       setState(() {
         selectedFile = fileToSend;
       });
+
       controller.text = currentPrompt;
       controller.selection = TextSelection.fromPosition(
         TextPosition(offset: controller.text.length),
       );
 
       if (mounted) {
-        // 에러가 있을 경우 SnackBar로 에러 메시지 표시
-        AppSnackBar.showError(context, e.toString());
+        AppSnackBar.showError(context, e.toString());   // 에러 메시지 표시
       }
       debugPrint('Error : $e');
     } finally {
@@ -322,10 +307,11 @@ class _HomeScreenState extends State<HomeScreen> {
     await _chatAiService.clearAllMessages();
 
     if (mounted) {
-      // setState(() => showScrollToBottom = false);   // 하단 이동 버튼 상태 초기화
-      setState(() {
-          showScrollToBottom = false;   // 하단 이동 버튼 상태 초기화
-        });
+      // 상태 변경 시 setState() 함수 실행
+      // 값 변경 시 build() 함수 재실행
+      // Clean -> setState() -> Dirty -> build() -> Clean
+      setState(() => showScrollToBottom = false);   // 하단 이동 버튼 상태 초기화
+      AppSnackBar.showInfo(context, 'Chat history has been cleared.');   // 삭제 완료 안내
     }
   }
 
@@ -350,9 +336,6 @@ class _HomeScreenState extends State<HomeScreen> {
     // 상태 변경 시 setState() 함수 실행
     // 값 변경 시 build() 함수 재실행
     // Clean -> setState() -> Dirty -> build() -> Clean
-    // setState(() => selectedFile = null);
-    setState(() {
-      selectedFile = null;
-    });
+    setState(() => selectedFile = null);
   }
 }

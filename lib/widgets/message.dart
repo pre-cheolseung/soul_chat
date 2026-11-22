@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:soul_chat/utils/app_snack_bar.dart';
 import 'package:soul_chat/utils/date_formatter.dart';
 import 'package:soul_chat/widgets/markdown_message_text.dart';
 import 'package:soul_chat/widgets/message_attachment.dart';
@@ -41,20 +42,18 @@ class _MessageState extends State<Message> {
     await Clipboard.setData(ClipboardData(text: widget.message));
     if (!mounted) return;
 
+    // 상태 변경 시 setState() 함수 실행
+    // 값 변경 시 build() 함수 재실행
+    // Clean -> setState() -> Dirty -> build() -> Clean
     setState(() => _isCopied = true);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('The entire message has been copied!'),
-        duration: Duration(seconds: 1),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    AppSnackBar.showSuccess(context, 'The entire message has been copied!');   // 복사 성공 안내
 
     // 1.5초 후 원래 복사 아이콘으로 복귀
     await Future.delayed(const Duration(milliseconds: 1500));
-    if (mounted) {
-      setState(() => _isCopied = false);
-    }
+    // 상태 변경 시 setState() 함수 실행
+    // 값 변경 시 build() 함수 재실행
+    // Clean -> setState() -> Dirty -> build() -> Clean
+    if (mounted) setState(() => _isCopied = false);
   }
 
   @override
