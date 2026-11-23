@@ -42,38 +42,7 @@ class ChatTextField extends StatelessWidget {
     const lavenderLight = Color(0xFF967EFB);
     const lavenderTintBg = Color(0xFFF7F5FF);   // 입력창 배경
     const lavenderBorder = Color(0xFFE6E0FF);   // 입력창 테두리
-    // return TextField(
-    //   controller: controller,
-    //   // onTap: onTap,   // 입력창을 누르면 키보드가 올라오는 타이밍에 맞춰 대화의 맨 아래로 이동
-    //   cursorColor: Colors.blueAccent,   // 커서색 변경
-    //   minLines: 1,   // 입력 필드 최소 1줄
-    //   maxLines: 4,   // 입력 필드 최대 4줄
-    //   textAlignVertical: TextAlignVertical.center,   // 텍스트 필드 세로 중앙 정렬
-    //   decoration: InputDecoration(
-    //     errorText: error,
-    //     // 텍스트 필드 전송 버튼
-    //     suffixIcon: IconButton(
-    //       onPressed: loading ? null : onSend,
-    //       icon: Icon(
-    //         Icons.send_outlined,
-    //         color: loading ? Colors.grey : Colors.blueAccent,
-    //       ),
-    //     ),
-    //     // 둥근 형태의 테두리 적용
-    //     border: OutlineInputBorder(
-    //       borderRadius: BorderRadius.circular(32.0),
-    //     ),
-    //     // 텍스트 필드가 선택되어 있는 경우 테두리 색 변경
-    //     focusedBorder: OutlineInputBorder(
-    //       borderRadius: BorderRadius.circular(32.0),
-    //       borderSide: BorderSide(
-    //         color: Colors.blueAccent,
-    //         width: 2.0,
-    //       ),
-    //     ),
-    //     hintText: 'Please enter a message!'
-    //   ),
-    // );
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -163,8 +132,8 @@ class ChatTextField extends StatelessWidget {
                       ),
                       decoration: InputDecoration(
                         hintText: selectedFile != null
-                            ? 'Ask a question about the file!'
-                            : 'Please enter a message!',
+                          ? 'Ask a question about the file!'
+                          : 'Please enter a message!',
                         hintStyle: TextStyle(
                           color: Color(0xFFA59EC4),
                           fontSize: 15.0,

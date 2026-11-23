@@ -60,6 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
       // 값 변경 시 build() 함수 재실행
       // Clean -> setState() -> Dirty -> build() -> Clean
       if (showScrollToBottom) setState(() => showScrollToBottom = false);
+      
       return;
     }
 
@@ -171,16 +172,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       isVisible: showScrollToBottom,
                       onTap: scrollToBottom,
                     ),
-                    // 깔끔한 원형 버튼 + 얇은 테두리 (ChatGPT 스타일)
-                    // 가운데 배치는 left: 0, right: 0, child를 Center로 변경
-                    // Positioned(
-                    //   right: 16.0,
-                    //   bottom: 16.0,
-                    //   child: ScrollToBottomButton(
-                    //     isVisible: showScrollToBottom,
-                    //     onTap: scrollToBottom,
-                    //   ),
-                    // ),
                   ],
                 ),
               ),
@@ -195,12 +186,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: ChatTextField(
                   controller: controller,
                   onSend: handleSendMessage,   // 채팅 입력 TextField 함수
-                  // 입력창을 누르면 키보드가 올라오는 타이밍에 맞춰 대화의 맨 아래로 이동
-                  // onTap: () {
-                  //   Future.delayed(const Duration(milliseconds: 300), () {
-                  //     scrollToBottom();
-                  //   });
-                  // },
                   onPickFile: _pickFile,
                   onRemoveFile: _removeFile,
                   selectedFile: selectedFile,
